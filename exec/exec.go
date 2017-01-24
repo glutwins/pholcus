@@ -3,12 +3,13 @@ package exec
 import (
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/henrylee2cn/pholcus/app"
-	"github.com/henrylee2cn/pholcus/cmd"
 	"github.com/henrylee2cn/pholcus/common/gc"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
@@ -17,7 +18,6 @@ import (
 )
 
 var (
-	uiflag             *string
 	modeflag           *int
 	portflag           *int
 	masterflag         *string
@@ -32,25 +32,24 @@ var (
 	failureInheritflag *bool
 )
 
-func init() {
-	// 开启最大核心数运行
+// Run 程序运行入口
+func Run() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	// 开启手动GC
 	gc.ManualGC()
-}
 
-func DefaultRun(uiDefault string) {
 	fmt.Printf("%v\n\n", config.FULL_NAME)
 	flag.String("a *********************************************** common *********************************************** -a", "", "")
 	// 操作界面
-	uiflag = flag.String("_ui", uiDefault, "   <选择操作界面> [web] [gui] [cmd]")
 	flagCommon()
 	web.Flag()
-	cmd.Flag()
 	flag.String("z", "", "README:   参数设置参考 [xxx] 提示，参数中包含多个值时以 \",\" 间隔。\r\n")
 	flag.Parse()
 	writeFlag()
-	run(*uiflag)
+
+	ctrl := make(chan os.Signal, 1)
+	signal.Notify(ctrl, os.Interrupt, os.Kill)
+	go web.Run()
+	<-ctrl
 }
 
 func flagCommon() {

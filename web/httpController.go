@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/henrylee2cn/pholcus/app"
-	"github.com/henrylee2cn/pholcus/common/session"
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/status"
+	"github.com/glutwins/pholcus/app"
+	"github.com/glutwins/pholcus/common/session"
+	"github.com/glutwins/pholcus/config"
+	"github.com/glutwins/pholcus/logs"
+	"github.com/glutwins/pholcus/runtime/status"
 )
 
 var globalSessions *session.Manager
@@ -34,13 +34,6 @@ func web(rw http.ResponseWriter, req *http.Request) {
 		"logo":    config.ICON_PNG,
 		"version": config.VERSION,
 		"author":  config.AUTHOR,
-		"mode": map[string]int{
-			"offline": status.OFFLINE,
-			"server":  status.SERVER,
-			"client":  status.CLIENT,
-			"unset":   status.UNSET,
-			"curr":    app.LogicApp.GetAppConf("mode").(int),
-		},
 		"status": map[string]int{
 			"stopped": status.STOPPED,
 			"stop":    status.STOP,

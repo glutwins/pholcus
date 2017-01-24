@@ -1,8 +1,8 @@
 package web
 
 import (
-	ws "github.com/henrylee2cn/pholcus/common/websocket"
-	"github.com/henrylee2cn/pholcus/logs"
+	ws "github.com/glutwins/pholcus/common/websocket"
+	"github.com/glutwins/pholcus/logs"
 )
 
 // log发送api
