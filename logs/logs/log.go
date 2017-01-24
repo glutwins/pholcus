@@ -46,18 +46,16 @@ import (
 	"sync"
 )
 
-// RFC5424 log message levels.
+type LogLevel uint8
+
 const (
-	LevelNothing = iota - 1
-	LevelApp     // only for pholcus
-	LevelEmergency
-	LevelAlert
-	LevelCritical
-	LevelError
-	LevelWarning
-	LevelNotice
-	LevelInformational
-	LevelDebug
+	LevelNONE LogLevel = 0
+	LevelCRIT
+	LevelEROR
+	LevelWARN
+	LevelNOTI
+	LevelINFO
+	LevelDEBG
 )
 
 type loggerType func() LoggerInterface
@@ -65,7 +63,7 @@ type loggerType func() LoggerInterface
 // LoggerInterface defines the behavior of a log provider.
 type LoggerInterface interface {
 	Init(config map[string]interface{}) error
-	WriteMsg(msg string, level int) error
+	WriteMsg(msg string, level LogLevel) error
 	Destroy()
 	Flush()
 }
@@ -97,38 +95,34 @@ const (
 // it can contain several providers and log message into all providers.
 type BeeLogger struct {
 	lock                sync.RWMutex
-	level               int
+	level               LogLevel
 	enableFuncCallDepth bool
 	loggerFuncCallDepth int
 	asynchronous        bool
 	msg                 chan *logMsg
 	steal               chan *logMsg
-	stealLevel          int
+	stealLevel          LogLevel
 	outputs             map[string]LoggerInterface
 	status              int
 }
 
 type logMsg struct {
-	level int
+	level LogLevel
 	msg   string
 }
 
 // NewLogger returns a new BeeLogger.
 // channellen means the number of messages in chan.
 // if the buffering chan is full, logger adapters write to file or other way.
-func NewLogger(channellen int64, stealLevel ...int) *BeeLogger {
+func NewLogger(channellen int64, stealLevel LogLevel) *BeeLogger {
 	bl := new(BeeLogger)
-	bl.level = LevelDebug
+	bl.level = LevelDEBG
 	bl.loggerFuncCallDepth = 2
 	bl.msg = make(chan *logMsg, channellen)
 	bl.outputs = make(map[string]LoggerInterface)
 	bl.status = WORK
 	bl.steal = make(chan *logMsg, channellen)
-	if len(stealLevel) > 0 {
-		bl.stealLevel = stealLevel[0]
-	} else {
-		bl.stealLevel = LevelNothing
-	}
+	bl.stealLevel = stealLevel
 	return bl
 }
 
@@ -171,7 +165,7 @@ func (bl *BeeLogger) DelLogger(adaptername string) error {
 	}
 }
 
-func (bl *BeeLogger) writerMsg(loglevel int, msg string) error {
+func (bl *BeeLogger) writerMsg(loglevel LogLevel, msg string) error {
 	if i, s := bl.Status(); i != WORK {
 		return errors.New("The current status is " + s)
 	}
@@ -214,11 +208,11 @@ func (bl *BeeLogger) writerMsg(loglevel int, msg string) error {
 //
 // If message level (such as LevelDebug) is higher than logger level (such as LevelWarning),
 // log providers will not even be sent the message.
-func (bl *BeeLogger) SetLevel(l int) {
+func (bl *BeeLogger) SetLevel(l LogLevel) {
 	bl.level = l
 }
 
-func (bl *BeeLogger) SetStealLevel(l int) {
+func (bl *BeeLogger) SetStealLevel(l LogLevel) {
 	bl.stealLevel = l
 }
 
@@ -255,85 +249,58 @@ func (bl *BeeLogger) startLogger() {
 	}
 }
 
-// Log APP level message.
-func (bl *BeeLogger) App(format string, v ...interface{}) {
-	if LevelApp > bl.level {
-		return
-	}
-	msg := fmt.Sprintf("[P] "+format, v...)
-	bl.writerMsg(LevelApp, msg)
-}
-
-// Log EMERGENCY level message.
-func (bl *BeeLogger) Emergency(format string, v ...interface{}) {
-	if LevelEmergency > bl.level {
-		return
-	}
-	msg := fmt.Sprintf("[M] "+format, v...)
-	bl.writerMsg(LevelEmergency, msg)
-}
-
-// Log ALERT level message.
-func (bl *BeeLogger) Alert(format string, v ...interface{}) {
-	if LevelAlert > bl.level {
-		return
-	}
-	msg := fmt.Sprintf("[A] "+format, v...)
-	bl.writerMsg(LevelAlert, msg)
-}
-
 // Log CRITICAL level message.
 func (bl *BeeLogger) Critical(format string, v ...interface{}) {
-	if LevelCritical > bl.level {
+	if LevelCRIT > bl.level {
 		return
 	}
 	msg := fmt.Sprintf("[C] "+format, v...)
-	bl.writerMsg(LevelCritical, msg)
+	bl.writerMsg(LevelCRIT, msg)
 }
 
 // Log ERROR level message.
 func (bl *BeeLogger) Error(format string, v ...interface{}) {
-	if LevelError > bl.level {
+	if LevelEROR > bl.level {
 		return
 	}
 	msg := fmt.Sprintf("[E] "+format, v...)
-	bl.writerMsg(LevelError, msg)
+	bl.writerMsg(LevelEROR, msg)
 }
 
 // Log WARNING level message.
 func (bl *BeeLogger) Warning(format string, v ...interface{}) {
-	if LevelWarning > bl.level {
+	if LevelWARN > bl.level {
 		return
 	}
 	msg := fmt.Sprintf("[W] "+format, v...)
-	bl.writerMsg(LevelWarning, msg)
+	bl.writerMsg(LevelWARN, msg)
 }
 
 // Log NOTICE level message.
 func (bl *BeeLogger) Notice(format string, v ...interface{}) {
-	if LevelNotice > bl.level {
+	if LevelNOTI > bl.level {
 		return
 	}
 	msg := fmt.Sprintf("[N] "+format, v...)
-	bl.writerMsg(LevelNotice, msg)
+	bl.writerMsg(LevelNOTI, msg)
 }
 
 // Log INFORMATIONAL level message.
 func (bl *BeeLogger) Informational(format string, v ...interface{}) {
-	if LevelInformational > bl.level {
+	if LevelINFO > bl.level {
 		return
 	}
 	msg := fmt.Sprintf("[I] "+format, v...)
-	bl.writerMsg(LevelInformational, msg)
+	bl.writerMsg(LevelINFO, msg)
 }
 
 // Log DEBUG level message.
 func (bl *BeeLogger) Debug(format string, v ...interface{}) {
-	if LevelDebug > bl.level {
+	if LevelDEBG > bl.level {
 		return
 	}
 	msg := fmt.Sprintf("[D] "+format, v...)
-	bl.writerMsg(LevelDebug, msg)
+	bl.writerMsg(LevelDEBG, msg)
 }
 
 // flush all chan data.
@@ -387,7 +354,7 @@ func (bl *BeeLogger) GoOn() {
 }
 
 // get a log message
-func (bl *BeeLogger) StealOne() (level int, msg string, ok bool) {
+func (bl *BeeLogger) StealOne() (level LogLevel, msg string, ok bool) {
 	lm := <-bl.steal
 	if lm == nil {
 		return 0, "", false

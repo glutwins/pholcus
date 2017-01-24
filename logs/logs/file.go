@@ -52,7 +52,7 @@ type FileLogWriter struct {
 
 	startLock sync.Mutex // Only one log can write to the file
 
-	Level int `json:"level"`
+	Level LogLevel `json:"level"`
 }
 
 // an *os.File writer with locker.
@@ -85,7 +85,7 @@ func NewFileWriter() LoggerInterface {
 		Daily:    true,
 		Maxdays:  7,
 		Rotate:   true,
-		Level:    LevelDebug,
+		Level:    LevelDEBG,
 	}
 	// use MuxWriter instead direct use os.File for lock write when rotate
 	w.mw = new(MuxWriter)
@@ -148,7 +148,7 @@ func (w *FileLogWriter) docheck(size int) {
 }
 
 // write logger message into file.
-func (w *FileLogWriter) WriteMsg(msg string, level int) error {
+func (w *FileLogWriter) WriteMsg(msg string, level LogLevel) error {
 	if level > w.Level {
 		return nil
 	}

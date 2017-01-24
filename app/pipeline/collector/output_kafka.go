@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/henrylee2cn/pholcus/common/kafka"
-	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/glutwins/pholcus/common/util"
 )
 
 /************************ Kafka 输出 ***************************/

@@ -1,15 +1,7 @@
 package collector
 
 import (
-	"github.com/henrylee2cn/pholcus/logs"
-)
-
-var (
-	// 全局支持的输出方式
-	DataOutput = make(map[string]func(self *Collector) error)
-
-	// 全局支持的文本数据输出方式名称列表
-	DataOutputLib []string
+	"github.com/glutwins/pholcus/logs"
 )
 
 // 文本数据输出

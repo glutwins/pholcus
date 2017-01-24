@@ -8,13 +8,11 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/request"
-	"github.com/henrylee2cn/pholcus/common/mgo"
-	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/common/pool"
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/glutwins/pholcus/app/downloader/request"
+	"github.com/glutwins/pholcus/common/pool"
+	"github.com/glutwins/pholcus/common/util"
+	"github.com/glutwins/pholcus/config"
+	"github.com/glutwins/pholcus/logs"
 )
 
 type (
@@ -61,15 +59,13 @@ func New(name string, subName string) Historier {
 	}
 	return &History{
 		Success: &Success{
-			tabName:  util.FileNameReplace(successTabName),
-			fileName: successFileName,
-			new:      make(map[string]bool),
-			old:      make(map[string]bool),
+			tabName: util.FileNameReplace(successTabName),
+			new:     make(map[string]bool),
+			old:     make(map[string]bool),
 		},
 		Failure: &Failure{
-			tabName:  util.FileNameReplace(failureTabName),
-			fileName: failureFileName,
-			list:     make(map[string]*request.Request),
+			tabName: util.FileNameReplace(failureTabName),
+			list:    make(map[string]*request.Request),
 		},
 	}
 }

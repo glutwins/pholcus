@@ -1,10 +1,12 @@
 package config
 
 import (
-	"strings"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
-	"github.com/henrylee2cn/pholcus/logs/logs"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"github.com/glutwins/pholcus/logs/logs"
+	"gopkg.in/yaml.v2"
 )
 
 // 软件信息。
@@ -20,7 +22,6 @@ const (
 // 默认配置。
 const (
 	WORK_ROOT      string = TAG + "_pkg"                    // 运行时的目录名称
-	CONFIG         string = WORK_ROOT + "/config.ini"       // 配置文件路径
 	CACHE_DIR      string = WORK_ROOT + "/cache"            // 缓存文件目录
 	LOG            string = WORK_ROOT + "/logs/pholcus.log" // 日志文件路径
 	LOG_ASYNC      bool   = true                            // 是否异步输出日志
@@ -30,72 +31,87 @@ const (
 	SPIDER_EXT     string = ".pholcus.html"                 // 动态规则扩展名
 )
 
-// 来自配置文件的配置项。
-var (
-	CRAWLS_CAP int = setting.DefaultInt("crawlcap", crawlcap) // 蜘蛛池最大容量
-	// DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                               // 收集器容量
-	PHANTOMJS                string = setting.String("phantomjs")                                                  // Surfer-Phantom下载器：phantomjs程序路径
-	PROXY                    string = setting.String("proxylib")                                                   // 代理IP文件路径
-	SPIDER_DIR               string = setting.String("spiderdir")                                                  // 动态规则目录
-	FILE_DIR                 string = setting.String("fileoutdir")                                                 // 文件（图片、HTML等）结果的输出目录
-	TEXT_DIR                 string = setting.String("textoutdir")                                                 // excel或csv输出方式下，文本结果的输出目录
-	DB_NAME                  string = setting.String("dbname")                                                     // 数据库名称
-	MGO_CONN_STR             string = setting.String("mgo::connstring")                                            // mongodb连接字符串
-	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                               // mongodb连接池容量
-	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)                   // mongodb连接池GC时间，单位秒
-	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                          // mysql连接字符串
-	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                           // mysql连接池容量
-	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacketmb) << 20 // mysql通信缓冲区的最大长度
+type PholcusLogConfig struct {
+	CacheCap int64         `yaml:"cachecap"`
+	Level    logs.LogLevel `yaml:"level"`
+	ConLevel logs.LogLevel `yaml:"conlevel"`
+	WebLevel logs.LogLevel `yaml:"weblevel"`
+	LogLine  bool          `yaml:"logline"`
+	LogSave  bool          `yaml:"logsave"`
+}
 
-	KAFKA_BORKERS string = setting.DefaultString("kafka::brokers", kafkabrokers) //kafka brokers
+type PholcusDbConfig struct {
+	Name string `yaml:"name"`
+	Type string `yaml:"type"`
+	Dsn  string `yaml:"dsn"`
+}
 
-	LOG_CAP            int64 = setting.DefaultInt64("log::cap", logcap)          // 日志缓存的容量
-	LOG_LEVEL          int   = logLevel(setting.String("log::level"))            // 全局日志打印级别（亦是日志文件输出级别）
-	LOG_CONSOLE_LEVEL  int   = logLevel(setting.String("log::consolelevel"))     // 日志在控制台的显示级别
-	LOG_FEEDBACK_LEVEL int   = logLevel(setting.String("log::feedbacklevel"))    // 客户端反馈至服务端的日志级别
-	LOG_LINEINFO       bool  = setting.DefaultBool("log::lineinfo", loglineinfo) // 日志是否打印行信息                                  // 客户端反馈至服务端的日志级别
-	LOG_SAVE           bool  = setting.DefaultBool("log::save", logsave)         // 是否保存所有日志到本地文件
-)
+type PholcusConfig struct {
+	CrawlsCap  int    `yaml:"crawlscap"`
+	PhantomJs  string `yaml:"phantomjs"`
+	Proxy      string `yaml:"proxy"`
+	SpiderDir  string `yaml:"spiderdir"`
+	FileOutDir string `yaml:"fileoutdir"`
+	TextOutDir string `yaml:"textoutdir"`
+
+	Db []*PholcusDbConfig `yaml:"db"`
+
+	Log PholcusLogConfig `yaml:"log"`
+}
+
+var DefaultConfig = PholcusConfig{
+	CrawlsCap: 50,
+	Log: PholcusLogConfig{
+		CacheCap: 10000,
+		Level:    logs.LevelDEBG,
+		ConLevel: logs.LevelNOTI,
+		WebLevel: logs.LevelEROR,
+	},
+}
+
+func LoadPholcusConfig() error {
+	os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
+	os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
+	os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
+
+	b, err := ioutil.ReadFile(WORK_ROOT + "/config.yaml")
+	if err != nil {
+		return err
+	}
+
+	if err = yaml.Unmarshal(b, &DefaultConfig); err != nil {
+		return err
+	}
+
+	os.MkdirAll(filepath.Clean(DefaultConfig.SpiderDir), 0777)
+	os.MkdirAll(filepath.Clean(DefaultConfig.FileOutDir), 0777)
+	os.MkdirAll(filepath.Clean(DefaultConfig.TextOutDir), 0777)
+
+	return nil
+}
+
+func SavePholcusConfig() error {
+	if b, err := yaml.Marshal(DefaultConfig); err != nil {
+		return err
+	} else {
+		ioutil.WriteFile(WORK_ROOT+"/config.yaml", b, os.ModePerm)
+	}
+
+	return nil
+}
 
 func init() {
 	// 主要运行时参数的初始化
-	cache.Task = &cache.AppConf{
-		Mode:           setting.DefaultInt("run::mode", mode),                 // 节点角色
-		Port:           setting.DefaultInt("run::port", port),                 // 主节点端口
-		Master:         setting.String("run::master"),                         // 服务器(主节点)地址，不含端口
-		ThreadNum:      setting.DefaultInt("run::thread", thread),             // 全局最大并发量
-		Pausetime:      setting.DefaultInt64("run::pause", pause),             // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
-		OutType:        setting.String("run::outtype"),                        // 输出方式
-		DockerCap:      setting.DefaultInt("run::dockercap", dockercap),       // 分段转储容器容量
-		Limit:          setting.DefaultInt64("run::limit", limit),             // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
-		ProxyMinute:    setting.DefaultInt64("run::proxyminute", proxyminute), // 代理IP更换的间隔分钟数
-		SuccessInherit: setting.DefaultBool("run::success", success),          // 继承历史成功记录
-		FailureInherit: setting.DefaultBool("run::failure", failure),          // 继承历史失败记录
-	}
-}
-
-func logLevel(l string) int {
-	switch strings.ToLower(l) {
-	case "app":
-		return logs.LevelApp
-	case "emergency":
-		return logs.LevelEmergency
-	case "alert":
-		return logs.LevelAlert
-	case "critical":
-		return logs.LevelCritical
-	case "error":
-		return logs.LevelError
-	case "warning":
-		return logs.LevelWarning
-	case "notice":
-		return logs.LevelNotice
-	case "informational":
-		return logs.LevelInformational
-	case "info":
-		return logs.LevelInformational
-	case "debug":
-		return logs.LevelDebug
-	}
-	return -10
+	/*
+		cache.Task = &cache.AppConf{
+			ThreadNum:      setting.DefaultInt("run::thread", thread),             // 全局最大并发量
+			Pausetime:      setting.DefaultInt64("run::pause", pause),             // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
+			OutType:        setting.String("run::outtype"),                        // 输出方式
+			DockerCap:      setting.DefaultInt("run::dockercap", dockercap),       // 分段转储容器容量
+			Limit:          setting.DefaultInt64("run::limit", limit),             // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
+			ProxyMinute:    setting.DefaultInt64("run::proxyminute", proxyminute), // 代理IP更换的间隔分钟数
+			SuccessInherit: setting.DefaultBool("run::success", success),          // 继承历史成功记录
+			FailureInherit: setting.DefaultBool("run::failure", failure),          // 继承历史失败记录
+		}
+	*/
 }

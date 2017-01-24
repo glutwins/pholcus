@@ -10,7 +10,6 @@ import (
 
 // 任务运行时公共配置
 type AppConf struct {
-	Mode           int    // 节点角色
 	Port           int    // 主节点端口
 	Master         string // 服务器(主节点)地址，不含端口
 	ThreadNum      int    // 全局最大并发量

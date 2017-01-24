@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/glutwins/pholcus/common/util"
+	"github.com/glutwins/pholcus/logs"
 )
 
 type Temp map[string]interface{}

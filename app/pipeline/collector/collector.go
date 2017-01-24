@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
-	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"github.com/glutwins/pholcus/app/pipeline/collector/data"
+	"github.com/glutwins/pholcus/app/spider"
+	"github.com/glutwins/pholcus/runtime/cache"
 )
 
 // 结果收集与输出
@@ -26,6 +26,8 @@ type Collector struct {
 	sum         [4]uint64 //收集的数据总数[上次输出后文本总数，本次输出后文本总数，上次输出后文件总数，本次输出后文件总数]，非并发安全
 	dataSumLock sync.RWMutex
 	fileSumLock sync.RWMutex
+
+	outputs map[string]writer.Writer
 }
 
 func NewCollector(sp *spider.Spider) *Collector {

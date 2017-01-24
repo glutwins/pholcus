@@ -6,8 +6,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs/logs"
+	"github.com/glutwins/pholcus/config"
+	"github.com/glutwins/pholcus/logs/logs"
 )
 
 type (
@@ -19,7 +19,7 @@ type (
 		// 恢复暂停状态，继续输出日志
 		GoOn()
 		// 按先后顺序实时截获日志，每次返回1条，normal标记日志是否被关闭
-		StealOne() (level int, msg string, normal bool)
+		StealOne() (level logs.LogLevel, msg string, normal bool)
 		// 正常关闭日志输出
 		Close()
 		// 返回运行状态，如0,"RUN"
@@ -30,13 +30,10 @@ type (
 		// 以下打印方法除正常log输出外，若为客户端或服务端模式还将进行socket信息发送
 		Debug(format string, v ...interface{})
 		Informational(format string, v ...interface{})
-		App(format string, v ...interface{})
 		Notice(format string, v ...interface{})
 		Warning(format string, v ...interface{})
 		Error(format string, v ...interface{})
 		Critical(format string, v ...interface{})
-		Alert(format string, v ...interface{})
-		Emergency(format string, v ...interface{})
 	}
 	mylog struct {
 		*logs.BeeLogger
@@ -49,27 +46,29 @@ var Log = func() Logs {
 	d, err := os.Stat(p)
 	if err != nil || !d.IsDir() {
 		if err := os.MkdirAll(p, 0777); err != nil {
-			// Log.Error("Error: %v\n", err)
+			panic(err)
 		}
 	}
 
+	conf := config.DefaultConfig.Log
+
 	ml := &mylog{
-		BeeLogger: logs.NewLogger(config.LOG_CAP, config.LOG_FEEDBACK_LEVEL),
+		BeeLogger: logs.NewLogger(conf.CacheCap, conf.WebLevel),
 	}
 
 	// 是否打印行信息
-	ml.BeeLogger.EnableFuncCallDepth(config.LOG_LINEINFO)
+	ml.BeeLogger.EnableFuncCallDepth(conf.LogLine)
 	// 全局日志打印级别（亦是日志文件输出级别）
-	ml.BeeLogger.SetLevel(config.LOG_LEVEL)
+	ml.BeeLogger.SetLevel(conf.Level)
 	// 是否异步输出日志
 	ml.BeeLogger.Async(config.LOG_ASYNC)
 	// 设置日志显示位置
 	ml.BeeLogger.SetLogger("console", map[string]interface{}{
-		"level": config.LOG_CONSOLE_LEVEL,
+		"level": conf.ConLevel,
 	})
 
 	// 是否保存所有日志到本地文件
-	if config.LOG_SAVE {
+	if conf.LogSave {
 		err = ml.BeeLogger.SetLogger("file", map[string]interface{}{
 			"filename": config.LOG,
 		})
@@ -84,7 +83,7 @@ var Log = func() Logs {
 func (self *mylog) SetOutput(show io.Writer) Logs {
 	self.BeeLogger.SetLogger("console", map[string]interface{}{
 		"writer": show,
-		"level":  config.LOG_CONSOLE_LEVEL,
+		"level":  config.DefaultConfig.Log.ConLevel,
 	})
 	return self
 }

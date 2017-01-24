@@ -26,17 +26,17 @@ import (
 type ConnWriter struct {
 	lg             *log.Logger
 	innerWriter    io.WriteCloser
-	ReconnectOnMsg bool   `json:"reconnectOnMsg"`
-	Reconnect      bool   `json:"reconnect"`
-	Net            string `json:"net"`
-	Addr           string `json:"addr"`
-	Level          int    `json:"level"`
+	ReconnectOnMsg bool     `json:"reconnectOnMsg"`
+	Reconnect      bool     `json:"reconnect"`
+	Net            string   `json:"net"`
+	Addr           string   `json:"addr"`
+	Level          LogLevel `json:"level"`
 }
 
 // create new ConnWrite returning as LoggerInterface.
 func NewConn() LoggerInterface {
 	conn := new(ConnWriter)
-	conn.Level = LevelDebug
+	conn.Level = LevelDEBG
 	return conn
 }
 
@@ -52,7 +52,7 @@ func (c *ConnWriter) Init(config map[string]interface{}) error {
 
 // write message in connection.
 // if connection is down, try to re-connect.
-func (c *ConnWriter) WriteMsg(msg string, level int) error {
+func (c *ConnWriter) WriteMsg(msg string, level LogLevel) error {
 	if level > c.Level {
 		return nil
 	}

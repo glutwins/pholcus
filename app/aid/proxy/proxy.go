@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/request"
-	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
-	"github.com/henrylee2cn/pholcus/common/ping"
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/glutwins/pholcus/app/downloader/request"
+	"github.com/glutwins/pholcus/app/downloader/surfer"
+	"github.com/glutwins/pholcus/common/ping"
+	"github.com/glutwins/pholcus/config"
+	"github.com/glutwins/pholcus/logs"
 )
 
 type Proxy struct {

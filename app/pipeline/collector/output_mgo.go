@@ -5,7 +5,6 @@ import (
 
 	mgov2 "gopkg.in/mgo.v2"
 
-	"github.com/glutwins/pholcus/common/mgo"
 	"github.com/glutwins/pholcus/common/pool"
 	"github.com/glutwins/pholcus/common/util"
 	"github.com/glutwins/pholcus/config"

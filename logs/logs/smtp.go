@@ -37,12 +37,12 @@ type SmtpWriter struct {
 	Subject            string   `json:"subject"`
 	FromAddress        string   `json:"fromAddress"`
 	RecipientAddresses []string `json:"sendTos"`
-	Level              int      `json:"level"`
+	Level              LogLevel `json:"level"`
 }
 
 // create smtp writer.
 func NewSmtpWriter() LoggerInterface {
-	return &SmtpWriter{Level: LevelDebug}
+	return &SmtpWriter{Level: LevelDEBG}
 }
 
 // init smtp writer with json config.
@@ -131,7 +131,7 @@ func (s *SmtpWriter) sendMail(hostAddressWithPort string, auth smtp.Auth, fromAd
 
 // write message in smtp writer.
 // it will send an email with subject and only this message.
-func (s *SmtpWriter) WriteMsg(msg string, level int) error {
+func (s *SmtpWriter) WriteMsg(msg string, level LogLevel) error {
 	if level > s.Level {
 		return nil
 	}

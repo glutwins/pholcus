@@ -47,13 +47,13 @@ var colors = []Brush{
 // ConsoleWriter implements LoggerInterface and writes messages to terminal.
 type ConsoleWriter struct {
 	lg    *log.Logger
-	Level int `json:"level"`
+	Level LogLevel `json:"level"`
 }
 
 // create ConsoleWriter returning as LoggerInterface.
 func NewConsole() LoggerInterface {
 	cw := &ConsoleWriter{
-		Level: LevelDebug,
+		Level: LevelDEBG,
 		lg:    log.New(os.Stdout, "", log.LstdFlags),
 	}
 	return cw
@@ -66,7 +66,7 @@ func (c *ConsoleWriter) Init(config map[string]interface{}) error {
 		return nil
 	}
 	if l, ok := config["level"]; ok {
-		if l2, ok2 := l.(int); ok2 {
+		if l2, ok2 := l.(LogLevel); ok2 {
 			c.Level = l2
 		} else {
 			return errors.New("consloe config-level's type is incorrect!")
@@ -81,7 +81,7 @@ func (c *ConsoleWriter) Init(config map[string]interface{}) error {
 }
 
 // write message in console.
-func (c *ConsoleWriter) WriteMsg(msg string, level int) error {
+func (c *ConsoleWriter) WriteMsg(msg string, level LogLevel) error {
 	if level > c.Level {
 		return nil
 	}

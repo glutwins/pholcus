@@ -4,10 +4,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/app/aid/proxy"
-	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"github.com/henrylee2cn/pholcus/runtime/status"
+	"github.com/glutwins/pholcus/app/aid/proxy"
+	"github.com/glutwins/pholcus/logs"
+	"github.com/glutwins/pholcus/runtime/cache"
+	"github.com/glutwins/pholcus/runtime/status"
 )
 
 // 调度器

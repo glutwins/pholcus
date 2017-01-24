@@ -7,12 +7,11 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
-	bytesSize "github.com/henrylee2cn/pholcus/common/bytes"
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs"
-	// "github.com/henrylee2cn/pholcus/runtime/cache"
+	"github.com/glutwins/pholcus/app/pipeline/collector/data"
+	bytesSize "github.com/glutwins/pholcus/common/bytes"
+	"github.com/glutwins/pholcus/common/util"
+	"github.com/glutwins/pholcus/config"
+	"github.com/glutwins/pholcus/logs"
 )
 
 // 文件输出
