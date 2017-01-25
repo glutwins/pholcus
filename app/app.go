@@ -18,30 +18,23 @@ import (
 
 type (
 	App interface {
-		Init() App                                   // 使用App前必须进行先Init初始化，SetLog()除外
-		SpiderPrepare(original []*spider.Spider) App // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
-		Run()                                        // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
-		Stop()                                       // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
-		IsRunning() bool                             // 检查任务是否正在运行
-		IsPause() bool                               // 检查任务是否处于暂停状态
-		IsStopped() bool                             // 检查任务是否已经终止
-		PauseRecover()                               // Offline 模式下暂停\恢复任务
-		Status() int                                 // 返回当前状态
-		GetSpiderLib() []*spider.Spider              // 获取全部蜘蛛种类
-		GetSpiderByName(string) *spider.Spider       // 通过名字获取某蜘蛛
-		GetSpiderQueue() crawler.SpiderQueue         // 获取蜘蛛队列接口实例
+		Run()            // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
+		Stop()           // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
+		IsRunning() bool // 检查任务是否正在运行
+		IsPause() bool   // 检查任务是否处于暂停状态
+		IsStopped() bool // 检查任务是否已经终止
+		PauseRecover()   // Offline 模式下暂停\恢复任务
+		Status() int     // 返回当前状态
 	}
 	Logic struct {
-		*cache.AppConf                      // 全局配置
-		*spider.SpiderSpecies               // 全部蜘蛛种类
-		crawler.SpiderQueue                 // 当前任务的蜘蛛队列
-		*distribute.TaskJar                 // 服务器与客户端间传递任务的存储库
-		crawler.CrawlerPool                 // 爬行回收池
-		teleport.Teleport                   // socket长连接双工通信接口，json数据传输
-		sum                   [2]uint64     // 执行计数
-		takeTime              time.Duration // 执行计时
-		status                int           // 运行状态
-		canSocketLog          bool
+		*cache.AppConf                    // 全局配置
+		*distribute.TaskJar               // 服务器与客户端间传递任务的存储库
+		crawler.CrawlerPool               // 爬行回收池
+		teleport.Teleport                 // socket长连接双工通信接口，json数据传输
+		sum                 [2]uint64     // 执行计数
+		takeTime            time.Duration // 执行计时
+		status              int           // 运行状态
+		canSocketLog        bool
 		sync.RWMutex
 	}
 )
@@ -51,65 +44,17 @@ var LogicApp = New()
 
 func New() App {
 	return &Logic{
-		AppConf:       cache.Task,
-		SpiderSpecies: spider.Species,
-		status:        status.STOPPED,
-		Teleport:      teleport.New(),
-		TaskJar:       distribute.NewTaskJar(),
-		SpiderQueue:   crawler.NewSpiderQueue(),
-		CrawlerPool:   crawler.NewCrawlerPool(),
+		AppConf:     cache.Task,
+		status:      status.STOPPED,
+		Teleport:    teleport.New(),
+		TaskJar:     distribute.NewTaskJar(),
+		CrawlerPool: crawler.NewCrawlerPool(),
 	}
-}
-
-// 使用App前必须先进行Init初始化（SetLog()除外）
-func (self *Logic) Init() App {
-	self.Teleport = teleport.New()
-	self.TaskJar = distribute.NewTaskJar()
-	self.SpiderQueue = crawler.NewSpiderQueue()
-	self.CrawlerPool = crawler.NewCrawlerPool()
-	return self
-}
-
-// SpiderPrepare()必须在设置全局运行参数之后，Run()的前一刻执行
-// original为spider包中未有过赋值操作的原始蜘蛛种类
-// 已被显式赋值过的spider将不再重新分配Keyin
-// client模式下不调用该方法
-func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
-	self.SpiderQueue.Reset()
-	// 遍历任务
-	for _, sp := range original {
-		spcopy := sp.Copy()
-		spcopy.SetPausetime(self.AppConf.Pausetime)
-		if spcopy.GetLimit() == spider.LIMIT {
-			spcopy.SetLimit(self.AppConf.Limit)
-		} else {
-			spcopy.SetLimit(-1 * self.AppConf.Limit)
-		}
-		self.SpiderQueue.Add(spcopy)
-	}
-	// 遍历自定义配置
-	self.SpiderQueue.AddKeyins(self.AppConf.Keyins)
-	return self
-}
-
-// 获取全部蜘蛛种类
-func (self *Logic) GetSpiderLib() []*spider.Spider {
-	return self.SpiderSpecies.Get()
-}
-
-// 通过名字获取某蜘蛛
-func (self *Logic) GetSpiderByName(name string) *spider.Spider {
-	return self.SpiderSpecies.GetByName(name)
 }
 
 // 服务器客户端模式下返回节点数
 func (self *Logic) CountNodes() int {
 	return self.Teleport.CountNodes()
-}
-
-// 获取蜘蛛队列接口实例
-func (self *Logic) GetSpiderQueue() crawler.SpiderQueue {
-	return self.SpiderQueue
 }
 
 // 运行任务
@@ -190,7 +135,7 @@ func (self *Logic) client() {
 			return
 		}
 
-		self.SpiderQueue.Reset()
+		sq := crawler.NewSpiderQueue()
 
 		self.AppConf.ThreadNum = t.ThreadNum
 		self.AppConf.Pausetime = t.Pausetime
@@ -202,7 +147,7 @@ func (self *Logic) client() {
 
 		// 初始化蜘蛛队列
 		for _, n := range t.Spiders {
-			sp := self.GetSpiderByName(n["name"])
+			sp := spider.Species.GetByName(n["name"])
 			if sp == nil {
 				continue
 			}
@@ -216,7 +161,7 @@ func (self *Logic) client() {
 			if v, ok := n["keyin"]; ok {
 				spcopy.SetKeyin(v)
 			}
-			self.SpiderQueue.Add(spcopy)
+			sq.Add(spcopy)
 		}
 
 		// 重置计数
@@ -224,7 +169,7 @@ func (self *Logic) client() {
 		// 重置计时
 		self.takeTime = 0
 
-		count := self.SpiderQueue.Len()
+		count := sq.Len()
 		cache.ResetPageCount()
 		// 初始化资源队列
 		scheduler.Init()
@@ -255,7 +200,7 @@ func (self *Logic) client() {
 			if c != nil {
 				go func(i int, c crawler.Crawler) {
 					// 执行并返回结果消息
-					c.Init(self.SpiderQueue.GetByIndex(i)).Run()
+					c.Init(sq.GetByIndex(i)).Run()
 					// 任务结束后回收该蜘蛛
 					self.RWMutex.RLock()
 					if self.status != status.STOP {

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/glutwins/pholcus/app"
+	"github.com/glutwins/pholcus/app/spider"
 	"github.com/glutwins/pholcus/config"
 	"github.com/glutwins/pholcus/logs"
 	"github.com/glutwins/pholcus/runtime/cache"
@@ -80,7 +80,7 @@ func Run() {
 
 	spiderMenu = func() (spmenu []map[string]string) {
 		// 获取蜘蛛家族
-		for _, sp := range app.LogicApp.GetSpiderLib() {
+		for _, sp := range spider.Species.Get() {
 			spmenu = append(spmenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
 		}
 		return spmenu

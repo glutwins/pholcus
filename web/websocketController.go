@@ -3,6 +3,7 @@ package web
 import (
 	"sync"
 
+	"github.com/glutwins/pholcus/app/crawler"
 	"github.com/glutwins/pholcus/app/spider"
 	"github.com/glutwins/pholcus/common/schema"
 	"github.com/glutwins/pholcus/common/util"
@@ -177,15 +178,26 @@ func init() {
 		if !ok {
 			return
 		}
-		spiders := []*spider.Spider{}
-		for _, sp := range app.LogicApp.GetSpiderLib() {
+		sq := crawler.NewSpiderQueue()
+		for _, sp := range spider.Species.Get() {
 			for _, spName := range spNames {
 				if util.Atoa(spName) == sp.GetName() {
-					spiders = append(spiders, sp.Copy())
+					spc := sp.Copy()
+					spc.SetPausetime(t.Pausetime)
+					if spc.GetLimit() == spider.LIMIT {
+						spc.SetLimit(t.Limit)
+					} else {
+						spc.SetLimit(-1 * t.Limit)
+					}
+					sq.Add(spc)
 				}
 			}
 		}
-		app.LogicApp.SpiderPrepare(spiders)
+		sq.AddKeyins(t.Keyins)
+
+		for _, sp := range sq.GetAll() {
+			t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
+		}
 	}
 
 	// 终止当前任务，现仅支持单机模式
@@ -209,16 +221,7 @@ func tplData(mode int) map[string]interface{} {
 	info["spiders"] = map[string]interface{}{
 		"menu": spiderMenu,
 		"curr": func() interface{} {
-			l := app.LogicApp.GetSpiderQueue().Len()
-			if l == 0 {
-				return 0
-			}
-			var curr = make(map[string]bool, l)
-			for _, sp := range app.LogicApp.GetSpiderQueue().GetAll() {
-				curr[sp.GetName()] = true
-			}
-
-			return curr
+			return make(map[string]bool, 0)
 		}(),
 	}
 

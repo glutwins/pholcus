@@ -21,9 +21,6 @@ func NewMaster(addr string) *Master {
 }
 
 func (m *Master) AddTask(t *schema.Task) {
-	for i, sp := range self.SpiderQueue.GetAll() {
-		t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
-	}
 
 	self.TaskJar.Push(&t)
 }
