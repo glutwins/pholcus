@@ -8,6 +8,7 @@ import (
 	"github.com/glutwins/pholcus/app/downloader/request"
 	"github.com/glutwins/pholcus/app/scheduler"
 	"github.com/glutwins/pholcus/common/util"
+	"github.com/glutwins/pholcus/config"
 	"github.com/glutwins/pholcus/logs"
 	"github.com/glutwins/pholcus/runtime/status"
 )
@@ -31,7 +32,8 @@ type (
 		NotDefaultField bool                                                       // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
 		Namespace       func(self *Spider) string                                  // 命名空间，用于输出文件、路径的命名
 		SubNamespace    func(self *Spider, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
-		RuleTree        *RuleTree                                                  // 定义具体的采集规则树
+		RuleTree        *RuleTree
+		Db              *config.PholcusDbConfig // 定义具体的采集规则树
 
 		// 以下字段系统自动赋值
 		id        int               // 自动分配的SpiderQueue中的索引
@@ -206,6 +208,7 @@ func (self *Spider) Copy() *Spider {
 	ghost := &Spider{}
 	ghost.Name = self.Name
 	ghost.subName = self.subName
+	ghost.Db = self.Db
 
 	ghost.RuleTree = &RuleTree{
 		Root:  self.RuleTree.Root,
@@ -239,10 +242,10 @@ func (self *Spider) Copy() *Spider {
 
 func (self *Spider) ReqmatrixInit() *Spider {
 	if self.Limit < 0 {
-		self.reqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit)
+		self.reqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit, self.Db)
 		self.SetLimit(0)
 	} else {
-		self.reqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64)
+		self.reqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64, self.Db)
 	}
 	return self
 }

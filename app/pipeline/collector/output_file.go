@@ -22,10 +22,8 @@ func (self *Collector) outputFile(file data.FileCell) {
 		self.wait.Done()
 	}()
 
-	// 路径： file/"RuleName"/"time"/"Name"
 	p, n := filepath.Split(filepath.Clean(file["Name"].(string)))
-	// dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace())+"__"+cache.StartTime.Format("2006年01月02日 15时04分05秒"), p)
-	dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace()), p)
+	dir := filepath.Join(config.DefaultConfig.FileOutDir, util.FileNameReplace(self.namespace()), p)
 
 	// 文件名
 	fileName := filepath.Join(dir, util.FileNameReplace(n))
@@ -67,7 +65,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 
 	// 打印报告
 	logs.Log.Informational(" * ")
-	logs.Log.App(
+	logs.Log.Informational(
 		" *     [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s)\n",
 		self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
 	)

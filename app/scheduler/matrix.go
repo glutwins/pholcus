@@ -28,24 +28,6 @@ type Matrix struct {
 	sync.Mutex
 }
 
-func newMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
-	matrix := &Matrix{
-		spiderName:  spiderName,
-		maxPage:     maxPage,
-		reqs:        make(map[int][]*request.Request),
-		priorities:  []int{},
-		history:     history.New(spiderName, spiderSubName),
-		tempHistory: make(map[string]bool),
-		failures:    make(map[string]*request.Request),
-	}
-	if cache.Task.Mode != status.SERVER {
-		matrix.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
-		matrix.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
-		matrix.setFailures(matrix.history.PullFailure())
-	}
-	return matrix
-}
-
 // 添加请求到队列，并发安全
 func (self *Matrix) Push(req *request.Request) {
 	// 禁止并发，降低请求积存量
@@ -212,21 +194,20 @@ func (self *Matrix) CanStop() bool {
 // 非服务器模式下保存历史成功记录
 func (self *Matrix) TryFlushSuccess() {
 	if cache.Task.Mode != status.SERVER && cache.Task.SuccessInherit {
-		self.history.FlushSuccess(cache.Task.OutType)
+		self.history.FlushSuccess()
 	}
 }
 
 // 非服务器模式下保存历史失败记录
 func (self *Matrix) TryFlushFailure() {
 	if cache.Task.Mode != status.SERVER && cache.Task.FailureInherit {
-		self.history.FlushFailure(cache.Task.OutType)
+		self.history.FlushFailure()
 	}
 }
 
 // 等待处理中的请求完成
 func (self *Matrix) Wait() {
 	if sdl.checkStatus(status.STOP) {
-		// println("Wait$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 		// 主动终止任务时，不等待运行中任务自然结束
 		return
 	}
@@ -269,16 +250,3 @@ func (self *Matrix) setFailures(reqs map[string]*request.Request) {
 		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 	}
 }
-
-// // 主动终止任务时，进行收尾工作
-// func (self *Matrix) windup() {
-// 	self.Lock()
-
-// 	self.reqs = make(map[int][]*request.Request)
-// 	self.priorities = []int{}
-// 	self.tempHistory = make(map[string]bool)
-
-// 	self.failures = make(map[string]*request.Request)
-
-// 	self.Unlock()
-// }

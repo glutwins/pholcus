@@ -59,3 +59,21 @@ func (s *MgoStorage) Remove(tblname string, data map[string]interface{}) error {
 
 	return c.Remove(data)
 }
+
+func (s *MgoStorage) FetchKVData(tblname string) (map[string]interface{}, error) {
+	c := s.sess.DB(s.dbname).C(tblname)
+	q := c.Find(nil)
+	r := []interface{}{}
+	if err := q.All(&r); err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]interface{})
+	for _, v := range r {
+		bv := v.(bson.M)
+		k := bv["_id"].(string)
+		result[k] = bv["_val"]
+	}
+
+	return result, nil
+}

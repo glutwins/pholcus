@@ -17,7 +17,7 @@ type Surfer struct {
 
 var SurferDownloader = &Surfer{
 	surf:    surfer.New(),
-	phantom: surfer.NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP),
+	phantom: surfer.NewPhantom(config.DefaultConfig.PhantomJs, config.PHANTOMJS_TEMP),
 }
 
 func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {

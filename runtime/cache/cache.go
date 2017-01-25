@@ -10,11 +10,11 @@ import (
 
 // 任务运行时公共配置
 type AppConf struct {
+	Mode           int
 	Port           int    // 主节点端口
 	Master         string // 服务器(主节点)地址，不含端口
 	ThreadNum      int    // 全局最大并发量
 	Pausetime      int64  // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
-	OutType        string // 输出方式
 	DockerCap      int    // 分段转储容器容量
 	Limit          int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
 	ProxyMinute    int64  // 代理IP更换的间隔分钟数

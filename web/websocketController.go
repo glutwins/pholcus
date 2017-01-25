@@ -203,11 +203,8 @@ func init() {
 			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 			return
 		} else {
-			// println("stopping^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 			app.LogicApp.Stop()
-			// println("stopping++++++++++++++++++++++++++++++++++++++++")
 			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
-			// println("stopping$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 		}
 	}
 
@@ -263,7 +260,7 @@ func tplData(mode int) map[string]interface{} {
 
 	// 输出方式清单
 	info["OutType"] = map[string]interface{}{
-		"menu": app.LogicApp.GetOutputLib(),
+		"menu": config.DefaultConfig.Db,
 		"curr": app.LogicApp.GetAppConf("OutType"),
 	}
 

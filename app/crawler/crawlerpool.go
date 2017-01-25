@@ -29,7 +29,7 @@ type (
 func NewCrawlerPool() CrawlerPool {
 	return &cq{
 		status: status.RUN,
-		all:    make([]Crawler, 0, config.CRAWLS_CAP),
+		all:    make([]Crawler, 0, config.DefaultConfig.CrawlsCap),
 	}
 }
 
@@ -39,10 +39,10 @@ func (self *cq) Reset(spiderNum int) int {
 	self.Lock()
 	defer self.Unlock()
 	var wantNum int
-	if spiderNum < config.CRAWLS_CAP {
+	if spiderNum < config.DefaultConfig.CrawlsCap {
 		wantNum = spiderNum
 	} else {
-		wantNum = config.CRAWLS_CAP
+		wantNum = config.DefaultConfig.CrawlsCap
 	}
 	if wantNum <= 0 {
 		wantNum = 1

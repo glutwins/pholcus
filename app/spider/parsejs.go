@@ -126,7 +126,7 @@ func getSpiderModles() (ms []*SpiderModle) {
 			log.Printf("[E] HTML动态规则解析: %v\n", p)
 		}
 	}()
-	files, _ := filepath.Glob(path.Join(config.SPIDER_DIR, "*"+config.SPIDER_EXT))
+	files, _ := filepath.Glob(path.Join(config.DefaultConfig.SpiderDir, "*"+config.SPIDER_EXT))
 	for _, filename := range files {
 		b, err := ioutil.ReadFile(filename)
 		if err != nil {

@@ -13,8 +13,6 @@ import (
 
 	"github.com/glutwins/pholcus/app/crawler"
 	"github.com/glutwins/pholcus/app/distribute"
-	"github.com/glutwins/pholcus/app/pipeline"
-	"github.com/glutwins/pholcus/app/pipeline/collector"
 	"github.com/glutwins/pholcus/app/scheduler"
 	"github.com/glutwins/pholcus/app/spider"
 	"github.com/glutwins/pholcus/logs"
@@ -43,7 +41,6 @@ type (
 		GetSpiderLib() []*spider.Spider                               // 获取全部蜘蛛种类
 		GetSpiderByName(string) *spider.Spider                        // 通过名字获取某蜘蛛
 		GetSpiderQueue() crawler.SpiderQueue                          // 获取蜘蛛队列接口实例
-		GetOutputLib() []string                                       // 获取全部输出方式
 		GetTaskJar() *distribute.TaskJar                              // 返回任务库
 		distribute.Distributer                                        // 实现分布式接口
 	}
@@ -238,11 +235,6 @@ func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
 	return self
 }
 
-// 获取全部输出方式
-func (self *Logic) GetOutputLib() []string {
-	return collector.DataOutputLib
-}
-
 // 获取全部蜘蛛种类
 func (self *Logic) GetSpiderLib() []*spider.Spider {
 	return self.SpiderSpecies.Get()
@@ -325,12 +317,9 @@ func (self *Logic) Stop() {
 	if self.status != status.STOP {
 		// 不可颠倒停止的顺序
 		self.setStatus(status.STOP)
-		// println("scheduler.Stop()")
 		scheduler.Stop()
-		// println("self.CrawlerPool.Stop()")
 		self.CrawlerPool.Stop()
 	}
-	// println("wait self.IsStopped()")
 	for !self.IsStopped() {
 		time.Sleep(time.Second)
 	}
@@ -513,8 +502,6 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 func (self *Logic) exec() {
 	count := self.SpiderQueue.Len()
 	cache.ResetPageCount()
-	// 刷新输出方式的状态
-	pipeline.RefreshOutput()
 	// 初始化资源队列
 	scheduler.Init()
 
@@ -525,7 +512,7 @@ func (self *Logic) exec() {
 	logs.Log.Informational(" *     采集引擎池容量为 %v\n", crawlerCap)
 	logs.Log.Informational(" *     并发协程最多 %v 个\n", self.AppConf.ThreadNum)
 	logs.Log.Informational(" *     随机停顿区间为 %v~%v 毫秒\n", self.AppConf.Pausetime/2, self.AppConf.Pausetime*2)
-	logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
+	logs.Log.Informational(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 开始计时
@@ -570,19 +557,19 @@ func (self *Logic) goRun(count int) {
 	for ii := 0; ii < i; ii++ {
 		s := <-cache.ReportChan
 		if (s.DataNum == 0) && (s.FileNum == 0) {
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.SpiderName, s.Keyin, s.Time)
+			logs.Log.Informational(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.SpiderName, s.Keyin, s.Time)
 			continue
 		}
 		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
+			logs.Log.Informational(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
 				s.SpiderName, s.Keyin, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
+			logs.Log.Informational(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
 				s.SpiderName, s.Keyin, s.FileNum, s.Time)
 		default:
-			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
+			logs.Log.Informational(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
 				s.SpiderName, s.Keyin, s.DataNum, s.FileNum, s.Time)
 		}
 
@@ -604,16 +591,16 @@ func (self *Logic) goRun(count int) {
 	logs.Log.Informational(" * ")
 	switch {
 	case self.sum[0] > 0 && self.sum[1] == 0:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+		logs.Log.Informational(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, self.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] > 0:
-		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+		logs.Log.Informational(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] == 0:
-		logs.Log.App(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+		logs.Log.Informational(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	default:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
+		logs.Log.Informational(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, self.sum[0], self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	}
 	logs.Log.Informational(" * ")
@@ -661,7 +648,6 @@ func (self *Logic) checkAll() bool {
 func (self *Logic) setAppConf(task *distribute.Task) {
 	self.AppConf.ThreadNum = task.ThreadNum
 	self.AppConf.Pausetime = task.Pausetime
-	self.AppConf.OutType = task.OutType
 	self.AppConf.DockerCap = task.DockerCap
 	self.AppConf.SuccessInherit = task.SuccessInherit
 	self.AppConf.FailureInherit = task.FailureInherit
@@ -672,7 +658,6 @@ func (self *Logic) setAppConf(task *distribute.Task) {
 func (self *Logic) setTask(task *distribute.Task) {
 	task.ThreadNum = self.AppConf.ThreadNum
 	task.Pausetime = self.AppConf.Pausetime
-	task.OutType = self.AppConf.OutType
 	task.DockerCap = self.AppConf.DockerCap
 	task.SuccessInherit = self.AppConf.SuccessInherit
 	task.FailureInherit = self.AppConf.FailureInherit

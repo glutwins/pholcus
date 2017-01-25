@@ -14,6 +14,12 @@ type Failure struct {
 	sync.RWMutex
 }
 
+func (self *Failure) Empty() {
+	self.RWMutex.Lock()
+	self.list = make(map[string]*request.Request)
+	self.RWMutex.Unlock()
+}
+
 func (self *Failure) PullFailure() map[string]*request.Request {
 	list := self.list
 	self.list = make(map[string]*request.Request)

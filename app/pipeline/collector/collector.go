@@ -9,7 +9,10 @@ import (
 
 	"github.com/glutwins/pholcus/app/pipeline/collector/data"
 	"github.com/glutwins/pholcus/app/spider"
+	"github.com/glutwins/pholcus/common/util"
+	"github.com/glutwins/pholcus/logs"
 	"github.com/glutwins/pholcus/runtime/cache"
+	"github.com/glutwins/pholcus/store"
 )
 
 // 结果收集与输出
@@ -18,7 +21,6 @@ type Collector struct {
 	DataChan       chan data.DataCell //文本数据收集通道
 	FileChan       chan data.FileCell //文件收集通道
 	dataDocker     []data.DataCell    //分批输出结果缓存
-	outType        string             //输出方式
 	// size     [2]uint64 //数据总输出流量统计[文本，文件]，文本暂时未统计
 	dataBatch   uint64 //当前文本输出批次
 	fileBatch   uint64 //当前文件输出批次
@@ -27,13 +29,12 @@ type Collector struct {
 	dataSumLock sync.RWMutex
 	fileSumLock sync.RWMutex
 
-	outputs map[string]writer.Writer
+	store store.Storage
 }
 
 func NewCollector(sp *spider.Spider) *Collector {
 	var self = &Collector{}
 	self.Spider = sp
-	self.outType = cache.Task.OutType
 	if cache.Task.DockerCap < 1 {
 		cache.Task.DockerCap = 1
 	}
@@ -44,6 +45,7 @@ func NewCollector(sp *spider.Spider) *Collector {
 	// self.size = [2]uint64{}
 	self.dataBatch = 0
 	self.fileBatch = 0
+	self.store = store.NewStorage(sp.Db)
 	return self
 }
 
@@ -95,7 +97,6 @@ func (self *Collector) Start() {
 		go func() {
 			defer func() {
 				recover()
-				// println("DataChanStop$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 			}()
 			for data := range self.DataChan {
 				// 缓存分批数据
@@ -119,7 +120,6 @@ func (self *Collector) Start() {
 		go func() {
 			defer func() {
 				recover()
-				// println("FileChanStop$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 			}()
 			// 只有当收到退出通知并且通道内无数据时，才退出循环
 			for file := range self.FileChan {
@@ -141,13 +141,6 @@ func (self *Collector) Start() {
 		// 返回报告
 		self.Report()
 	}()
-}
-
-func (self *Collector) resetDataDocker() {
-	for _, cell := range self.dataDocker {
-		data.PutDataCell(cell)
-	}
-	self.dataDocker = self.dataDocker[:0]
 }
 
 // 获取文本数据总量
@@ -180,25 +173,67 @@ func (self *Collector) addFileSum(add uint64) {
 	self.sum[3] += add
 }
 
-// // 获取文本输出流量
-// func (self *Collector) dataSize() uint64 {
-// 	return self.size[0]
-// }
+// 文本数据输出
+func (self *Collector) outputData() {
+	defer func() {
+		for _, cell := range self.dataDocker {
+			data.PutDataCell(cell)
+		}
+		self.dataDocker = self.dataDocker[:0]
+	}()
 
-// // 更新文本输出流量记录
-// func (self *Collector) addDataSize(add uint64) {
-// 	self.size[0] += add
-// }
+	// 输出
+	dataLen := uint64(len(self.dataDocker))
+	if dataLen == 0 {
+		return
+	}
 
-// // 获取文件输出流量
-// func (self *Collector) fileSize() uint64 {
-// 	return self.size[1]
-// }
+	defer func() {
+		if p := recover(); p != nil {
+			logs.Log.Informational(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
+				self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen, p)
+		}
+	}()
 
-// // 更新文本输出流量记录
-// func (self *Collector) addFileSize(add uint64) {
-// 	self.size[1] += add
-// }
+	// 输出统计
+	self.addDataSum(dataLen)
+
+	// 执行输出
+	ns := util.FileNameReplace(self.namespace())
+	for _, datacell := range self.dataDocker {
+		var subNamespace = util.FileNameReplace(self.subNamespace(datacell))
+		tblname := cache.StartTime.Format("2006-01-02 150405") + "/" + joinNamespaces(ns, subNamespace)
+
+		row := map[string]interface{}{}
+
+		for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
+			vd := datacell["Data"].(map[string]interface{})
+			row[title] = ""
+			if v, ok := vd[title]; ok {
+				if vs, ok := v.(string); ok {
+					row[title] = vs
+				} else {
+					row[title] = util.JsonString(v)
+				}
+			}
+		}
+
+		if self.Spider.OutDefaultField() {
+			row["当前链接"] = datacell["Url"].(string)
+			row["上级链接"] = datacell["ParentUrl"].(string)
+			row["下载时间"] = datacell["DownloadTime"].(string)
+		}
+
+		if err := self.store.InsertStringMap(tblname, row); err != nil {
+			logs.Log.Error(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
+				self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen, err)
+		}
+	}
+
+	logs.Log.Informational(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！\n",
+		self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen)
+	self.Spider.TryFlushSuccess()
+}
 
 // 返回报告
 func (self *Collector) Report() {

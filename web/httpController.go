@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/glutwins/pholcus/app"
 	"github.com/glutwins/pholcus/common/session"
 	"github.com/glutwins/pholcus/config"
 	"github.com/glutwins/pholcus/logs"
@@ -24,7 +23,6 @@ func web(rw http.ResponseWriter, req *http.Request) {
 	defer sess.SessionRelease(rw)
 	index, _ := viewsIndexHtmlBytes()
 	t, err := template.New("index").Parse(string(index)) //解析模板文件
-	// t, err := template.ParseFiles("web/views/index.html") //解析模板文件
 	if err != nil {
 		logs.Log.Error("%v", err)
 	}
@@ -40,8 +38,6 @@ func web(rw http.ResponseWriter, req *http.Request) {
 			"run":     status.RUN,
 			"pause":   status.PAUSE,
 		},
-		"port": app.LogicApp.GetAppConf("port").(int),
-		"ip":   app.LogicApp.GetAppConf("master").(string),
 	}
 	t.Execute(rw, data) //执行模板的merger操作
 }

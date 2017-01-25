@@ -53,6 +53,7 @@ type PholcusConfig struct {
 	SpiderDir  string `yaml:"spiderdir"`
 	FileOutDir string `yaml:"fileoutdir"`
 	TextOutDir string `yaml:"textoutdir"`
+	WebAddr    string `yaml:"webaddr"`
 
 	Db []*PholcusDbConfig `yaml:"db"`
 
@@ -67,6 +68,7 @@ var DefaultConfig = PholcusConfig{
 		ConLevel: logs.LevelNOTI,
 		WebLevel: logs.LevelEROR,
 	},
+	WebAddr: "0.0.0.0:9090",
 }
 
 func LoadPholcusConfig() error {

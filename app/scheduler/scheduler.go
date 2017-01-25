@@ -4,7 +4,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/glutwins/pholcus/app/aid/history"
 	"github.com/glutwins/pholcus/app/aid/proxy"
+	"github.com/glutwins/pholcus/app/downloader/request"
+	"github.com/glutwins/pholcus/config"
 	"github.com/glutwins/pholcus/logs"
 	"github.com/glutwins/pholcus/runtime/cache"
 	"github.com/glutwins/pholcus/runtime/status"
@@ -52,8 +55,21 @@ func Init() {
 }
 
 // 注册资源队列
-func AddMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
-	matrix := newMatrix(spiderName, spiderSubName, maxPage)
+func AddMatrix(spiderName, spiderSubName string, maxPage int64, db *config.PholcusDbConfig) *Matrix {
+	matrix := &Matrix{
+		spiderName:  spiderName,
+		maxPage:     maxPage,
+		reqs:        make(map[int][]*request.Request),
+		priorities:  []int{},
+		history:     history.New(spiderName, spiderSubName, db),
+		tempHistory: make(map[string]bool),
+		failures:    make(map[string]*request.Request),
+	}
+	if cache.Task.Mode != status.SERVER {
+		matrix.history.ReadSuccess(cache.Task.SuccessInherit)
+		matrix.history.ReadFailure(cache.Task.FailureInherit)
+		matrix.setFailures(matrix.history.PullFailure())
+	}
 	sdl.RLock()
 	defer sdl.RUnlock()
 	sdl.matrices = append(sdl.matrices, matrix)

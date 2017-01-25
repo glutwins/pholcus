@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{.title}}</title>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <link rel="shortcut icon" href="data:image/png;base64,{{.logo}}" type="image/x-icon">
+    <!-- Bootstrap 3.3.4 -->
+    <link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link href="/public/css/pholcus.css" rel="stylesheet" type="text/css" />
+    <script src="/public/js/jquery.min.js"></script>
+    <script src="/public/bootstrap/js/bootstrap.min.js"></script>
+    <script>
+        _stopped = ({{.status.stopped}});
+        _stop = ({{.status.stop}});
+        _run = ({{.status.run}});
+	    _pause = ({{.status.pause}});
+    </script>
+    <script src="/public/js/tpl.js"></script>
+    <script src="/public/js/app.js"></script>
+    <script src="/public/layer/layer.js"></script>
+</head>
+
+<body>
+    <div class="backdrop">
+        <div class="footer">
+            Github website: <a href="https://github.com/glutwins/pholcus">Pholcus {{.version}}</a> / Author: {{.author}} / Discuss: <a href="http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589">Go大数据群</a> / Apache License v2.
+        </div>
+        <!-- github -->
+        <div>
+            <script type="text/javascript" src="/public/js/jquery.githubRepoWidget2.js"></script>
+            <div class="github-widget" data-repo="glutwins/pholcus" style="margin:5px;"></div>
+        </div>
+    </div>
+</body>
+
+</html>
