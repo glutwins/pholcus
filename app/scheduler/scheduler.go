@@ -65,11 +65,11 @@ func AddMatrix(spiderName, spiderSubName string, maxPage int64, db *config.Pholc
 		tempHistory: make(map[string]bool),
 		failures:    make(map[string]*request.Request),
 	}
-	if cache.Task.Mode != status.SERVER {
-		matrix.history.ReadSuccess(cache.Task.SuccessInherit)
-		matrix.history.ReadFailure(cache.Task.FailureInherit)
-		matrix.setFailures(matrix.history.PullFailure())
-	}
+
+	matrix.history.ReadSuccess()
+	matrix.history.ReadFailure()
+	matrix.setFailures(matrix.history.PullFailure())
+
 	sdl.RLock()
 	defer sdl.RUnlock()
 	sdl.matrices = append(sdl.matrices, matrix)

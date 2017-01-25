@@ -8,50 +8,29 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
 	"runtime"
 
 	"github.com/glutwins/pholcus/app"
-	"github.com/glutwins/pholcus/common/gc"
 	"github.com/glutwins/pholcus/config"
 	"github.com/glutwins/pholcus/logs"
 	"github.com/glutwins/pholcus/runtime/cache"
 )
 
 var (
-	spiderMenu         []map[string]string
-	portflag           *int
-	masterflag         *string
-	keyinsflag         *string
-	limitflag          *int64
-	threadflag         *int
-	pauseflag          *int64
-	proxyflag          *int64
-	dockerflag         *int
-	successInheritflag *bool
-	failureInheritflag *bool
+	spiderMenu []map[string]string
+	keyinsflag *string
+	limitflag  *int64
+	threadflag *int
+	pauseflag  *int64
+	proxyflag  *int64
+	dockerflag *int
 )
 
 // 执行入口
 func Run() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	gc.ManualGC()
 
 	fmt.Printf("%v\n\n", config.FULL_NAME)
-	flag.String("a *********************************************** common *********************************************** -a", "", "")
-	// 操作界面
-	//端口号，非单机模式填写
-	portflag = flag.Int(
-		"a_port",
-		cache.Task.Port,
-		"   <端口号: 只填写数字即可，不含冒号，单机模式不填>")
-
-	//主节点ip，客户端模式填写
-	masterflag = flag.String(
-		"a_master",
-		cache.Task.Master,
-		"   <服务端IP: 不含端口，客户端模式下使用>")
 
 	// 自定义配置
 	keyinsflag = flag.String(
@@ -89,53 +68,30 @@ func Run() {
 		cache.Task.DockerCap,
 		"   <分批输出> [1~5000000]")
 
-	// 继承历史成功记录
-	successInheritflag = flag.Bool(
-		"a_success",
-		cache.Task.SuccessInherit,
-		"   <继承并保存成功记录> [true] [false]")
-
-	// 继承历史失败记录
-	failureInheritflag = flag.Bool(
-		"a_failure",
-		cache.Task.FailureInherit,
-		"   <继承并保存失败记录> [true] [false]")
-
 	flag.String("z", "", "README:   参数设置参考 [xxx] 提示，参数中包含多个值时以 \",\" 间隔。\r\n")
 	flag.Parse()
 
-	cache.Task.Port = *portflag
-	cache.Task.Master = *masterflag
 	cache.Task.Keyins = *keyinsflag
 	cache.Task.Limit = *limitflag
 	cache.Task.ThreadNum = *threadflag
 	cache.Task.Pausetime = *pauseflag
 	cache.Task.ProxyMinute = *proxyflag
 	cache.Task.DockerCap = *dockerflag
-	cache.Task.SuccessInherit = *successInheritflag
-	cache.Task.FailureInherit = *failureInheritflag
 
-	ctrl := make(chan os.Signal, 1)
-	signal.Notify(ctrl, os.Interrupt, os.Kill)
-
-	go func() {
-		spiderMenu = func() (spmenu []map[string]string) {
-			// 获取蜘蛛家族
-			for _, sp := range app.LogicApp.GetSpiderLib() {
-				spmenu = append(spmenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
-			}
-			return spmenu
-		}()
-
-		// 预绑定路由
-		Router()
-
-		log.Printf("[pholcus] Server running on %v\n", config.DefaultConfig.WebAddr)
-		// 监听端口
-		if err := http.ListenAndServe(config.DefaultConfig.WebAddr, nil); err != nil {
-			logs.Log.Error("ListenAndServe: %v", err)
+	spiderMenu = func() (spmenu []map[string]string) {
+		// 获取蜘蛛家族
+		for _, sp := range app.LogicApp.GetSpiderLib() {
+			spmenu = append(spmenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
 		}
+		return spmenu
 	}()
 
-	<-ctrl
+	// 预绑定路由
+	Router()
+
+	log.Printf("[pholcus] Server running on %v\n", config.DefaultConfig.WebAddr)
+	// 监听端口
+	if err := http.ListenAndServe(config.DefaultConfig.WebAddr, nil); err != nil {
+		logs.Log.Error("ListenAndServe: %v", err)
+	}
 }

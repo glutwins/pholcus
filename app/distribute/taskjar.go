@@ -1,5 +1,9 @@
 package distribute
 
+import (
+	. "github.com/glutwins/pholcus/common/schema"
+)
+
 // 任务仓库
 type TaskJar struct {
 	Tasks chan *Task

@@ -10,13 +10,13 @@ import (
 
 type (
 	Historier interface {
-		ReadSuccess(inherit bool)  // 读取成功记录
+		ReadSuccess()              // 读取成功记录
 		UpsertSuccess(string) bool // 更新或加入成功记录
 		HasSuccess(string) bool    // 检查是否存在某条成功记录
 		DeleteSuccess(string)      // 删除成功记录
 		FlushSuccess()             // I/O输出成功记录，但不清缓存
 
-		ReadFailure(bool)                         // 取出失败记录
+		ReadFailure()                             // 取出失败记录
 		PullFailure() map[string]*request.Request // 拉取失败记录并清空
 		UpsertFailure(*request.Request) bool      // 更新或加入失败记录
 		DeleteFailure(*request.Request)           // 删除失败记录
@@ -27,7 +27,8 @@ type (
 	History struct {
 		*Success
 		*Failure
-		s store.Storage
+		s       store.Storage
+		inherit bool
 	}
 )
 
@@ -53,8 +54,8 @@ func New(name string, subName string, db *config.PholcusDbConfig) Historier {
 }
 
 // 读取成功记录
-func (self *History) ReadSuccess(inherit bool) {
-	if !inherit {
+func (self *History) ReadSuccess() {
+	if !self.inherit {
 		// 不继承历史记录时
 		self.Success.old = make(map[string]bool)
 		self.Success.new = make(map[string]bool)
@@ -81,8 +82,8 @@ func (self *History) ReadSuccess(inherit bool) {
 }
 
 // 取出失败记录
-func (self *History) ReadFailure(inherit bool) {
-	if !inherit {
+func (self *History) ReadFailure() {
+	if !self.inherit {
 		// 不继承历史记录时
 		self.Failure.list = make(map[string]*request.Request)
 		self.Failure.inheritable = false

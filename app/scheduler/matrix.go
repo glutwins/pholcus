@@ -193,14 +193,14 @@ func (self *Matrix) CanStop() bool {
 
 // 非服务器模式下保存历史成功记录
 func (self *Matrix) TryFlushSuccess() {
-	if cache.Task.Mode != status.SERVER && cache.Task.SuccessInherit {
+	if cache.Task.Inherit {
 		self.history.FlushSuccess()
 	}
 }
 
 // 非服务器模式下保存历史失败记录
 func (self *Matrix) TryFlushFailure() {
-	if cache.Task.Mode != status.SERVER && cache.Task.FailureInherit {
+	if cache.Task.Inherit {
 		self.history.FlushFailure()
 	}
 }
