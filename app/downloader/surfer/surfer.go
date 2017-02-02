@@ -24,12 +24,11 @@ import (
 )
 
 var (
-	surf         Surfer
-	phantom      Surfer
-	once_surf    sync.Once
-	once_phantom sync.Once
-	tempJsDir    = "./tmp"
-	// phantomjsFile = filepath.Clean(path.Join(os.Getenv("GOPATH"), `/src/github.com/henrylee2cn/surfer/phantomjs/phantomjs`))
+	surf          Surfer
+	phantom       Surfer
+	once_surf     sync.Once
+	once_phantom  sync.Once
+	tempJsDir     = "./tmp"
 	phantomjsFile = `./phantomjs`
 )
 

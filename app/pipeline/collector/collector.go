@@ -207,8 +207,11 @@ func (self *Collector) outputData() {
 
 	// 执行输出
 	for _, datacell := range self.dataDocker {
-		var subNamespace = util.FileNameReplace(self.subns(datacell))
-		tblname := now.Format("2006-01-02 150405") + "/" + joinNamespaces(self.name, subNamespace)
+		ns := self.name
+		if sub := self.subns(datacell); sub != "" {
+			ns = ns + "__" + util.FileNameReplace(sub)
+		}
+		tblname := now.Format("2006-01-02 150405") + "/" + ns
 
 		row := map[string]interface{}{}
 		row["当前链接"] = datacell["Url"]

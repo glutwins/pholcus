@@ -14,9 +14,9 @@ import (
 
 	"golang.org/x/net/html/charset"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/glutwins/pholcus/app/downloader/request"
 	"github.com/glutwins/pholcus/app/pipeline/collector/data"
-	"github.com/glutwins/pholcus/common/goquery"
 	"github.com/glutwins/pholcus/common/util"
 	"github.com/glutwins/pholcus/logs"
 )
