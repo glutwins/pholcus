@@ -115,11 +115,14 @@ func (self *History) Empty() {
 
 // I/O输出成功记录，但不清缓存
 func (self *History) FlushSuccess() {
+	if !self.Success.inheritable {
+		return
+	}
+
 	sucLen, err := self.Success.flush(self.s)
 	if sucLen <= 0 {
 		return
 	}
-	// logs.Log.Informational(" * ")
 	if err != nil {
 		logs.Log.Error("%v", err)
 	} else {
@@ -129,6 +132,9 @@ func (self *History) FlushSuccess() {
 
 // I/O输出失败记录，但不清缓存
 func (self *History) FlushFailure() {
+	if !self.Failure.inheritable {
+		return
+	}
 	failLen, err := self.Failure.flush(self.s)
 	if failLen <= 0 {
 		return

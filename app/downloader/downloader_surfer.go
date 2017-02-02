@@ -20,8 +20,7 @@ var SurferDownloader = &Surfer{
 	phantom: surfer.NewPhantom(config.DefaultConfig.PhantomJs, config.PHANTOMJS_TEMP),
 }
 
-func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {
-	ctx := spider.GetContext(sp, cReq)
+func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) (*spider.Context, error) {
 
 	var resp *http.Response
 	var err error
@@ -34,11 +33,16 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 		resp, err = self.phantom.Download(cReq)
 	}
 
-	if resp.StatusCode >= 400 {
-		err = errors.New("响应状态 " + resp.Status)
+	if err != nil {
+		return nil, err
 	}
 
-	ctx.SetResponse(resp).SetError(err)
+	if resp.StatusCode >= 400 {
+		return nil, errors.New("响应状态 " + resp.Status)
+	}
 
-	return ctx
+	ctx := spider.GetContext(sp, cReq)
+	ctx.Response = resp
+
+	return ctx, nil
 }

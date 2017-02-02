@@ -17,10 +17,9 @@ const (
 	LOG
 )
 
-// 运行状态
 const (
-	STOPPED = iota - 1
+	PAUSE = iota
 	STOP
 	RUN
-	PAUSE
+	STOPPED
 )

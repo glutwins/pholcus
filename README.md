@@ -334,7 +334,6 @@ url页面内容的更新，框架无法直接支持判断，但是用户可以�
 "github.com/robertkrimen/otto"
 "github.com/Shopify/sarama"
 "github.com/go-sql-driver/mysql"
-"github.com/lxn/walk"
 "github.com/elazarl/go-bindata-assetfs"
 "github.com/henrylee2cn/pholcus_lib" // 此为公开维护的spider规则库
 ```

@@ -3,8 +3,6 @@ package web
 import (
 	"sync"
 
-	"github.com/glutwins/pholcus/app/crawler"
-	"github.com/glutwins/pholcus/app/spider"
 	"github.com/glutwins/pholcus/common/schema"
 	"github.com/glutwins/pholcus/common/util"
 	ws "github.com/glutwins/pholcus/common/websocket"
@@ -178,25 +176,11 @@ func init() {
 		if !ok {
 			return
 		}
-		sq := crawler.NewSpiderQueue()
-		for _, sp := range spider.Species.Get() {
-			for _, spName := range spNames {
-				if util.Atoa(spName) == sp.GetName() {
-					spc := sp.Copy()
-					spc.SetPausetime(t.Pausetime)
-					if spc.GetLimit() == spider.LIMIT {
-						spc.SetLimit(t.Limit)
-					} else {
-						spc.SetLimit(-1 * t.Limit)
-					}
-					sq.Add(spc)
-				}
-			}
-		}
-		sq.AddKeyins(t.Keyins)
+		t.Spiders = make(map[string][]string, len(spNames))
 
-		for _, sp := range sq.GetAll() {
-			t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
+		keyins := util.KeyinsParse(t.Keyins)
+		for _, name := range spNames {
+			t.Spiders[name.(string)] = keyins
 		}
 	}
 

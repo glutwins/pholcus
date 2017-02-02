@@ -7,7 +7,6 @@ import (
 	"github.com/glutwins/pholcus/common/session"
 	"github.com/glutwins/pholcus/config"
 	"github.com/glutwins/pholcus/logs"
-	"github.com/glutwins/pholcus/runtime/status"
 )
 
 var globalSessions *session.Manager
@@ -32,12 +31,6 @@ func web(rw http.ResponseWriter, req *http.Request) {
 		"logo":    config.ICON_PNG,
 		"version": config.VERSION,
 		"author":  config.AUTHOR,
-		"status": map[string]int{
-			"stopped": status.STOPPED,
-			"stop":    status.STOP,
-			"run":     status.RUN,
-			"pause":   status.PAUSE,
-		},
 	}
 	t.Execute(rw, data) //执行模板的merger操作
 }

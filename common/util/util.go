@@ -25,11 +25,6 @@ import (
 	"github.com/glutwins/pholcus/logs"
 )
 
-const (
-	// Spider中启用Keyin的初始值
-	USE_KEYIN = "\r\t\n"
-)
-
 var (
 	re = regexp.MustCompile(">[ \t\n\v\f\r]+<")
 )
@@ -358,7 +353,7 @@ func FileNameReplace(fileName string) string {
 			r[i] = '╲'
 		}
 	}
-	return strings.Replace(string(r), USE_KEYIN, ``, -1)
+	return string(r)
 }
 
 // 将Excel工作表名中非法字符替换为下划线
@@ -372,7 +367,7 @@ func ExcelSheetNameReplace(fileName string) string {
 			r[i] = '_'
 		}
 	}
-	return strings.Replace(string(r), USE_KEYIN, ``, -1)
+	return string(r)
 }
 
 func Atoa(str interface{}) string {

@@ -64,7 +64,6 @@ func (self *Proxy) Count() int {
 func (self *Proxy) Update() *Proxy {
 	f, err := os.Open(config.DefaultConfig.Proxy)
 	if err != nil {
-		// logs.Log.Error("Error: %v\n", err)
 		return self
 	}
 	b, _ := ioutil.ReadAll(f)
@@ -120,7 +119,7 @@ func (self *Proxy) UpdateTicker(tickMinute int64) {
 
 // 获取本次循环中未使用的代理IP及其响应时长
 func (self *Proxy) GetOne(u string) (curProxy string) {
-	if self.online == 0 {
+	if self.online == 0 || self.tickMinute == 0 {
 		return
 	}
 	u2, _ := url.Parse(u)

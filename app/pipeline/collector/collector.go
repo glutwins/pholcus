@@ -9,43 +9,55 @@ import (
 
 	"github.com/glutwins/pholcus/app/pipeline/collector/data"
 	"github.com/glutwins/pholcus/app/spider"
+	"github.com/glutwins/pholcus/common/schema"
 	"github.com/glutwins/pholcus/common/util"
 	"github.com/glutwins/pholcus/logs"
-	"github.com/glutwins/pholcus/runtime/cache"
 	"github.com/glutwins/pholcus/store"
 )
 
 // 结果收集与输出
 type Collector struct {
-	*spider.Spider                    //绑定的采集规则
-	DataChan       chan data.DataCell //文本数据收集通道
-	FileChan       chan data.FileCell //文件收集通道
-	dataDocker     []data.DataCell    //分批输出结果缓存
-	// size     [2]uint64 //数据总输出流量统计[文本，文件]，文本暂时未统计
-	dataBatch   uint64 //当前文本输出批次
-	fileBatch   uint64 //当前文件输出批次
+	DataChan    chan data.DataCell //文本数据收集通道
+	FileChan    chan data.FileCell //文件收集通道
+	dataDocker  []data.DataCell    //分批输出结果缓存
+	dataBatch   uint64             //当前文本输出批次
+	fileBatch   uint64             //当前文件输出批次
 	wait        sync.WaitGroup
 	sum         [4]uint64 //收集的数据总数[上次输出后文本总数，本次输出后文本总数，上次输出后文件总数，本次输出后文件总数]，非并发安全
 	dataSumLock sync.RWMutex
 	fileSumLock sync.RWMutex
 
+	name  string
+	subns func(map[string]interface{}) string
+
 	store store.Storage
 }
 
-func NewCollector(sp *spider.Spider) *Collector {
+func NewCollector(sp *spider.Spider, t *schema.Task) *Collector {
 	var self = &Collector{}
-	self.Spider = sp
-	if cache.Task.DockerCap < 1 {
-		cache.Task.DockerCap = 1
+	self.name = sp.GetSubName()
+	if self.name == "" {
+		self.name = sp.Name
+	} else {
+		self.name = sp.Name + "__" + self.name
 	}
-	self.DataChan = make(chan data.DataCell, cache.Task.DockerCap)
-	self.FileChan = make(chan data.FileCell, cache.Task.DockerCap)
-	self.dataDocker = make([]data.DataCell, 0, cache.Task.DockerCap)
+	self.name = util.FileNameReplace(self.name)
+
+	if sp.Namespace != nil {
+		self.subns = sp.Namespace
+	} else {
+		self.subns = func(cell map[string]interface{}) string {
+			return cell["RuleName"].(string)
+		}
+	}
+
+	self.DataChan = make(chan data.DataCell, t.DockerCap)
+	self.FileChan = make(chan data.FileCell, t.DockerCap)
+	self.dataDocker = make([]data.DataCell, 0, t.DockerCap)
 	self.sum = [4]uint64{}
-	// self.size = [2]uint64{}
 	self.dataBatch = 0
 	self.fileBatch = 0
-	self.store = store.NewStorage(sp.Db)
+	self.store = store.NewStorage(t.Db)
 	return self
 }
 
@@ -103,7 +115,7 @@ func (self *Collector) Start() {
 				self.dataDocker = append(self.dataDocker, data)
 
 				// 未达到设定的分批量时继续收集数据
-				if len(self.dataDocker) < cache.Task.DockerCap {
+				if len(self.dataDocker) < cap(self.dataDocker) {
 					continue
 				}
 
@@ -132,14 +144,9 @@ func (self *Collector) Start() {
 
 		<-dataStop
 		<-fileStop
-		// println("OutputWaitStopping++++++++++++++++++++++++++++++++")
 
 		// 等待所有输出完成
 		self.wait.Wait()
-		// println("OutputStopped$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-
-		// 返回报告
-		self.Report()
 	}()
 }
 
@@ -190,60 +197,35 @@ func (self *Collector) outputData() {
 
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Informational(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen, p)
+			logs.Log.Informational(" *     Panic  %v\n", p)
 		}
 	}()
 
 	// 输出统计
 	self.addDataSum(dataLen)
+	now := time.Now()
 
 	// 执行输出
-	ns := util.FileNameReplace(self.namespace())
 	for _, datacell := range self.dataDocker {
-		var subNamespace = util.FileNameReplace(self.subNamespace(datacell))
-		tblname := cache.StartTime.Format("2006-01-02 150405") + "/" + joinNamespaces(ns, subNamespace)
+		var subNamespace = util.FileNameReplace(self.subns(datacell))
+		tblname := now.Format("2006-01-02 150405") + "/" + joinNamespaces(self.name, subNamespace)
 
 		row := map[string]interface{}{}
-
-		for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
-			vd := datacell["Data"].(map[string]interface{})
-			row[title] = ""
-			if v, ok := vd[title]; ok {
-				if vs, ok := v.(string); ok {
-					row[title] = vs
-				} else {
-					row[title] = util.JsonString(v)
-				}
-			}
-		}
-
-		if self.Spider.OutDefaultField() {
-			row["当前链接"] = datacell["Url"].(string)
-			row["上级链接"] = datacell["ParentUrl"].(string)
-			row["下载时间"] = datacell["DownloadTime"].(string)
+		row["当前链接"] = datacell["Url"]
+		row["上级链接"] = datacell["ParentUrl"]
+		row["下载时间"] = datacell["DownloadTime"]
+		vd := datacell["Data"].(map[string]interface{})
+		for k, v := range vd {
+			row[k] = v
 		}
 
 		if err := self.store.InsertStringMap(tblname, row); err != nil {
-			logs.Log.Error(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen, err)
+			logs.Log.Error(" *     Fail  [数据输出： | KEYIN： | 批次：%v]   数据 %v 条！ [ERROR]  %v\n",
+				self.dataBatch, dataLen, err)
 		}
 	}
 
-	logs.Log.Informational(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条！\n",
-		self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen)
-	self.Spider.TryFlushSuccess()
-}
-
-// 返回报告
-func (self *Collector) Report() {
-	cache.ReportChan <- &cache.Report{
-		SpiderName: self.Spider.GetName(),
-		Keyin:      self.GetKeyin(),
-		DataNum:    self.dataSum(),
-		FileNum:    self.fileSum(),
-		// DataSize:   self.dataSize(),
-		// FileSize: self.fileSize(),
-		Time: time.Since(cache.StartTime),
-	}
+	logs.Log.Informational(" *     [数据输出：| KEYIN： | 批次：%v]   数据 %v 条！\n",
+		self.dataBatch, dataLen)
+	//self.Spider.TryFlushSuccess()
 }

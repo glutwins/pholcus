@@ -5,6 +5,7 @@ import (
 	"github.com/glutwins/pholcus/app/pipeline/collector"
 	"github.com/glutwins/pholcus/app/pipeline/collector/data"
 	"github.com/glutwins/pholcus/app/spider"
+	"github.com/glutwins/pholcus/common/schema"
 )
 
 // 数据收集/输出管道
@@ -15,6 +16,6 @@ type Pipeline interface {
 	CollectFile(data.FileCell) error //收集文件
 }
 
-func New(sp *spider.Spider) Pipeline {
-	return collector.NewCollector(sp)
+func New(sp *spider.Spider, t *schema.Task) Pipeline {
+	return collector.NewCollector(sp, t)
 }

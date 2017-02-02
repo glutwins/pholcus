@@ -226,19 +226,7 @@ var htmlReg = regexp.MustCompile(`(\*{1,2}[\s\S]*?\*)|(<!-[\s\S]*?-->)|(^\s*\n)`
 
 //处理html文件--add by lyken 20160512
 func ProcessHtml(html string) string {
-	//去除注释
 	html = htmlReg.ReplaceAllString(html, "")
-	//re := regexp.MustCompile("<![\\S\\s]+?>")
-	//html = re.ReplaceAllString(html, "")
-
-	//将HTML标签全转换成小写
-	//re, _ = regexp.Compile("\\<[\\S\\s]+?\\>")
-	//html = re.ReplaceAllStringFunc(html, strings.ToLower)
-
-	//去除连续的换行符
-	//re, _ = regexp.Compile("\\s{2,}")
-	//html = re.ReplaceAllString(html, "\n")
-
 	return html
 }
 
@@ -291,26 +279,7 @@ func GetHerf(baseurl string, url string, herf string, mustBase bool) string {
 	}
 
 	refIndex := strings.LastIndex(url, "/") + 1
-	/*sub := url[refIndex:]
-	if !strings.HasSuffix(url, "/") {
-		if strings.Index(sub, ".") == -1 &&
-			strings.Index(sub, "?") == -1 &&
-			strings.Index(sub, "#") == -1 {
-			url = url + `/`
-		} else {
-			url = url[:refIndex]
-		}
-	}*/
 	url = url[:refIndex]
-
-	/*refIndex = strings.LastIndex(herf, "/") + 1
-	sub = herf[refIndex:]
-	if len(sub) > 0 &&
-		strings.Index(sub, ".") == -1 &&
-		strings.Index(sub, "?") == -1 &&
-		strings.Index(sub, "#") == -1 {
-		herf = herf + `/`
-	}*/
 
 	if strings.HasPrefix(herf, "./../") {
 		herf = strings.Replace(herf, "./", "", 1)
@@ -321,11 +290,8 @@ func GetHerf(baseurl string, url string, herf string, mustBase bool) string {
 	} else if herf == "/" {
 		result = baseurl
 	} else if strings.HasPrefix(herf, "./") {
-		/*reg := regexp.MustCompile(`^(./)(.*)`)
-		result = url + strings.Trim(reg.ReplaceAllString(herf, "$2"), " ")*/
 		result = url + strings.Replace(herf, "./", "", 1)
 	} else if strings.HasPrefix(herf, "/") {
-		//reg = regexp.MustCompile(`^(http)(s)?(://)([0-9A-Za-z.\-_]+)(/)(.*)`)
 		result = strings.Trim(baseurl, " ") + herf[1:]
 	} else if mustBase && !strings.HasPrefix(herf, baseurl) &&
 		(strings.Index(herf, "://") > -1 ||
@@ -354,10 +320,6 @@ func GetHerf(baseurl string, url string, herf string, mustBase bool) string {
 			result = url + herf
 		}
 	}
-
-	/*if strings.Count(result, "://") > 1 {
-		result = strings.SplitN(result, "://", 2)[1]
-	}*/
 
 	return result
 }

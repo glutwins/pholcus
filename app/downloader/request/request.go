@@ -259,15 +259,6 @@ func (self *Request) SetRuleName(ruleName string) *Request {
 	return self
 }
 
-func (self *Request) GetSpiderName() string {
-	return self.Spider
-}
-
-func (self *Request) SetSpiderName(spiderName string) *Request {
-	self.Spider = spiderName
-	return self
-}
-
 func (self *Request) IsReloadable() bool {
 	return self.Reloadable
 }

@@ -4,94 +4,42 @@
 package web
 
 import (
-	"flag"
-	"fmt"
 	"log"
+	"mime"
 	"net/http"
 	"runtime"
 
 	"github.com/glutwins/pholcus/app/spider"
+	ws "github.com/glutwins/pholcus/common/websocket"
 	"github.com/glutwins/pholcus/config"
-	"github.com/glutwins/pholcus/logs"
-	"github.com/glutwins/pholcus/runtime/cache"
 )
 
-var (
-	spiderMenu []map[string]string
-	keyinsflag *string
-	limitflag  *int64
-	threadflag *int
-	pauseflag  *int64
-	proxyflag  *int64
-	dockerflag *int
-)
+var spiderMenu []map[string]string
 
 // 执行入口
 func Run() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	fmt.Printf("%v\n\n", config.FULL_NAME)
+	log.Printf("%v\n\n", config.FULL_NAME)
 
-	// 自定义配置
-	keyinsflag = flag.String(
-		"a_keyins",
-		cache.Task.Keyins,
-		"   <自定义配置: 多任务请分别多包一层“<>”>")
+	for name, sp := range spider.Species {
+		spiderMenu = append(spiderMenu, map[string]string{"name": name, "description": sp.Description})
+	}
 
-	// 采集上限
-	limitflag = flag.Int64(
-		"a_limit",
-		cache.Task.Limit,
-		"   <采集上限（默认限制URL数）> [>=0]")
+	mime.AddExtensionType(".css", "text/css")
 
-	// 并发协程数
-	threadflag = flag.Int(
-		"a_thread",
-		cache.Task.ThreadNum,
-		"   <并发协程> [1~99999]")
-
-	// 平均暂停时间
-	pauseflag = flag.Int64(
-		"a_pause",
-		cache.Task.Pausetime,
-		"   <平均暂停时间/ms> [>=100]")
-
-	// 代理IP更换频率
-	proxyflag = flag.Int64(
-		"a_proxyminute",
-		cache.Task.ProxyMinute,
-		"   <代理IP更换频率: /m，为0时不使用代理> [>=0]")
-
-	// 分批输出
-	dockerflag = flag.Int(
-		"a_dockercap",
-		cache.Task.DockerCap,
-		"   <分批输出> [1~5000000]")
-
-	flag.String("z", "", "README:   参数设置参考 [xxx] 提示，参数中包含多个值时以 \",\" 间隔。\r\n")
-	flag.Parse()
-
-	cache.Task.Keyins = *keyinsflag
-	cache.Task.Limit = *limitflag
-	cache.Task.ThreadNum = *threadflag
-	cache.Task.Pausetime = *pauseflag
-	cache.Task.ProxyMinute = *proxyflag
-	cache.Task.DockerCap = *dockerflag
-
-	spiderMenu = func() (spmenu []map[string]string) {
-		// 获取蜘蛛家族
-		for _, sp := range spider.Species.Get() {
-			spmenu = append(spmenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
-		}
-		return spmenu
-	}()
-
-	// 预绑定路由
-	Router()
+	// 设置websocket请求路由
+	http.Handle("/ws", ws.Handler(wsHandle))
+	// 设置websocket报告打印专用路由
+	http.Handle("/ws/log", ws.Handler(wsLogHandle))
+	//设置http访问的路由
+	http.HandleFunc("/", web)
+	//static file server
+	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(assetFS())))
 
 	log.Printf("[pholcus] Server running on %v\n", config.DefaultConfig.WebAddr)
 	// 监听端口
 	if err := http.ListenAndServe(config.DefaultConfig.WebAddr, nil); err != nil {
-		logs.Log.Error("ListenAndServe: %v", err)
+		log.Fatalf("ListenAndServe: %v", err)
 	}
 }

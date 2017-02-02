@@ -23,7 +23,7 @@ func (self *Collector) outputFile(file data.FileCell) {
 	}()
 
 	p, n := filepath.Split(filepath.Clean(file["Name"].(string)))
-	dir := filepath.Join(config.DefaultConfig.FileOutDir, util.FileNameReplace(self.namespace()), p)
+	dir := filepath.Join(config.DefaultConfig.FileOutDir, self.name, p)
 
 	// 文件名
 	fileName := filepath.Join(dir, util.FileNameReplace(n))
@@ -32,9 +32,8 @@ func (self *Collector) outputFile(file data.FileCell) {
 	d, err := os.Stat(dir)
 	if err != nil || !d.IsDir() {
 		if err := os.MkdirAll(dir, 0777); err != nil {
-			logs.Log.Error(
-				" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v [ERROR]  %v\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+			logs.Log.Error(" *     Fail  [文件下载： | KEYIN： | 批次：%v]   %v [ERROR]  %v\n",
+				atomic.LoadUint64(&self.fileBatch), fileName, err,
 			)
 			return
 		}
@@ -44,8 +43,8 @@ func (self *Collector) outputFile(file data.FileCell) {
 	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		logs.Log.Error(
-			" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+			" *     Fail  [文件下载： | KEYIN： | 批次：%v]   %v [ERROR]  %v\n",
+			atomic.LoadUint64(&self.fileBatch), fileName, err,
 		)
 		return
 	}
@@ -54,8 +53,8 @@ func (self *Collector) outputFile(file data.FileCell) {
 	f.Close()
 	if err != nil {
 		logs.Log.Error(
-			" *     Fail  [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s) [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
+			" *     Fail  [文件下载： | KEYIN： | 批次：%v]   %v (%s) [ERROR]  %v\n",
+			atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
 		)
 		return
 	}
@@ -66,8 +65,8 @@ func (self *Collector) outputFile(file data.FileCell) {
 	// 打印报告
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(
-		" *     [文件下载：%v | KEYIN：%v | 批次：%v]   %v (%s)\n",
-		self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
+		" *     [文件下载：| KEYIN：| 批次：%v]   %v (%s)\n",
+		atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
 	)
 	logs.Log.Informational(" * ")
 }
