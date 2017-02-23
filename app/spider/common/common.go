@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/glutwins/pholcus/common/goquery"
-	"github.com/glutwins/pholcus/common/mahonia"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/axgle/mahonia"
 	"github.com/glutwins/pholcus/common/ping"
 )
 
@@ -147,10 +147,6 @@ func ConvertToString(src string, srcCode string, tagCode string) string {
 	result := string(cdata)
 	return result
 }
-
-// func GBKToUTF8(src string) string {
-// 	return DecodeString(EncodeString(src, "ISO-8859-1"), "GBK")
-// }
 
 func GBKToUTF8(src string) string {
 	return DecodeString(src, "GB18030")

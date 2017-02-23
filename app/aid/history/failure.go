@@ -39,13 +39,6 @@ func (self *Failure) UpsertFailure(req *request.Request) bool {
 	return true
 }
 
-// 删除失败记录
-func (self *Failure) DeleteFailure(req *request.Request) {
-	self.RWMutex.Lock()
-	delete(self.list, req.Unique())
-	self.RWMutex.Unlock()
-}
-
 // 先清空历史失败记录再更新
 func (self *Failure) flush(w store.Storage) (int, error) {
 	self.RWMutex.Lock()
