@@ -166,7 +166,6 @@ func init() {
 		t := &schema.Task{}
 		t.ThreadNum = util.Atoi(req["ThreadNum"])
 		t.Pausetime = int64(util.Atoi(req["Pausetime"]))
-		t.ProxyMinute = int64(util.Atoi(req["ProxyMinute"]))
 		t.DockerCap = util.Atoi(req["DockerCap"])
 		t.Limit = int64(util.Atoi(req["Limit"]))
 		t.Keyins = util.Atoa(req["Keyins"])

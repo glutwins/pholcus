@@ -1,109 +1,102 @@
 package history
 
 import (
+	"sync"
+	"time"
+
 	"github.com/glutwins/pholcus/app/downloader/request"
-	"github.com/glutwins/pholcus/common/util"
 	"github.com/glutwins/pholcus/config"
 	"github.com/glutwins/pholcus/logs"
 	"github.com/glutwins/pholcus/store"
 )
 
-type (
-	Historier interface {
-		ReadSuccess()              // 读取成功记录
-		UpsertSuccess(string) bool // 更新或加入成功记录
-		HasSuccess(string) bool    // 检查是否存在某条成功记录
-		Flush()                    // I/O输出成功记录，但不清缓存
+type historyValue struct {
+	Succ  bool
+	Url   string
+	Exval string
+}
 
-		ReadFailure()                             // 取出失败记录
-		PullFailure() map[string]*request.Request // 拉取失败记录并清空
-		UpsertFailure(*request.Request) bool      // 更新或加入失败记录
-	}
-	History struct {
-		*Success
-		*Failure
-		s       store.Storage
-		inherit bool
-	}
-)
+type History struct {
+	succmap map[string]*historyValue
+	failmap map[string]*historyValue
+	tabName string
+	s       store.Storage
+	inherit bool
+	sync.RWMutex
+}
 
-func New(name string, subName string, db *config.PholcusDbConfig) Historier {
-	successTabName := config.HISTORY_TAG + "__y__" + name
-	failureTabName := config.HISTORY_TAG + "__n__" + name
+func New(name string, subName string, db *config.PholcusDbConfig) *History {
+	self := &History{
+		succmap: make(map[string]*historyValue),
+		failmap: make(map[string]*historyValue),
+		s:       store.NewStorage(db),
+	}
+
+	self.tabName = config.HISTORY_TAG + "__y__" + name
 	if subName != "" {
-		successTabName += "__" + subName
-		failureTabName += "__" + subName
+		self.tabName += "__" + subName
 	}
-	return &History{
-		Success: &Success{
-			tabName: util.FileNameReplace(successTabName),
-			new:     make(map[string]bool),
-			old:     make(map[string]bool),
-		},
-		Failure: &Failure{
-			tabName: util.FileNameReplace(failureTabName),
-			list:    make(map[string]*request.Request),
-		},
-		s: store.NewStorage(db),
+
+	if self.inherit {
+		docs, _ := self.s.FetchKVData(self.tabName)
+		for k, v := range docs {
+			r := v.(*historyValue)
+			if r.Succ {
+				self.succmap[k] = r
+			} else {
+				self.failmap[k] = r
+			}
+		}
+
+		logs.Log.Informational(" *     [读取记录]: 成功 %d 条, 失败 %d 条\n", len(self.succmap), len(self.failmap))
+	}
+
+	return self
+}
+
+func (self *History) Upsert(req *request.Request, err error) {
+	self.Lock()
+	defer self.Unlock()
+
+	uid := req.Unique()
+	if _, ok := self.succmap[uid]; !ok {
+		if _, ok := self.failmap[uid]; ok {
+			if err == nil {
+				delete(self.failmap, uid)
+				self.succmap[uid] = &historyValue{true, req.Url, time.Now().String()}
+			}
+		} else {
+			v := &historyValue{Url: req.Url}
+			if err != nil {
+				v.Exval = err.Error()
+				self.failmap[uid] = v
+			} else {
+				v.Succ = true
+				v.Exval = time.Now().String()
+				self.succmap[uid] = v
+			}
+		}
 	}
 }
 
-// 读取成功记录
-func (self *History) ReadSuccess() {
-	if !self.inherit {
-		// 不继承历史记录时
-		self.Success.old = make(map[string]bool)
-		self.Success.new = make(map[string]bool)
-		self.Success.inheritable = false
-		return
-
-	} else if self.Success.inheritable {
-		// 本次与上次均继承历史记录时
-		return
-
-	} else {
-		// 上次没有继承历史记录，但本次继承时
-		self.Success.old = make(map[string]bool)
-		self.Success.new = make(map[string]bool)
-		self.Success.inheritable = true
-	}
-
-	docs, _ := self.s.FetchKVData(self.Success.tabName)
-	for k, _ := range docs {
-		self.Success.old[k] = true
-	}
-
-	logs.Log.Informational(" *     [读取成功记录]: %v 条\n", len(self.Success.old))
-}
-
-// 取出失败记录
-func (self *History) ReadFailure() {
-	if !self.inherit {
-		// 不继承历史记录时
-		self.Failure.list = make(map[string]*request.Request)
-		self.Failure.inheritable = false
-		return
-
-	} else if self.Failure.inheritable {
-		// 本次与上次均继承历史记录时
-		return
-
-	} else {
-		// 上次没有继承历史记录，但本次继承时
-		self.Failure.list = make(map[string]*request.Request)
-		self.Failure.inheritable = true
-	}
-
-	docs, _ := self.s.FetchKVData(self.Failure.tabName)
-	for k, v := range docs {
-		self.Failure.list[k], _ = request.UnSerialize(v.(string))
-	}
-
-	logs.Log.Informational(" *     [取出失败记录]: %v 条\n", len(docs))
+func (self *History) HasSucc(uid string) bool {
+	return true
 }
 
 // I/O输出成功记录，但不清缓存
 func (self *History) Flush() {
-	self.Success.flush(self.s)
-	self.Failure.flush(self.s)
+	self.Lock()
+	defer self.Unlock()
+
+	result := make(map[string]interface{})
+	for k, v := range self.succmap {
+		result[k] = v
+	}
+	for k, v := range self.failmap {
+		result[k] = v
+	}
+
+	if len(result) > 0 {
+		self.s.InsertKVData(self.tabName, result)
+	}
 }

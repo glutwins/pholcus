@@ -30,13 +30,11 @@ type Request struct {
 	Temp          Temp            //临时数据
 	TempIsJson    map[string]bool //将Temp中以JSON存储的字段标记为true，自动设置，禁止人为填写
 	Priority      int             //指定调度优先级，默认为0（最小优先级为0）
-	Reloadable    bool            //是否允许重复该链接下载
 	//Surfer下载器内核ID
 	//0为Surf高并发下载器，各种控制功能齐全
 	//1为PhantomJS下载器，特点破防力强，速度慢，低并发
 	DownloaderID int
 
-	proxy  string //当用户界面设置可使用代理IP时，自动设置代理
 	unique string //ID
 	lock   sync.RWMutex
 }
@@ -237,15 +235,6 @@ func (self *Request) GetRetryPause() time.Duration {
 	return self.RetryPause
 }
 
-func (self *Request) GetProxy() string {
-	return self.proxy
-}
-
-func (self *Request) SetProxy(proxy string) *Request {
-	self.proxy = proxy
-	return self
-}
-
 func (self *Request) GetRedirectTimes() int {
 	return self.RedirectTimes
 }
@@ -256,15 +245,6 @@ func (self *Request) GetRuleName() string {
 
 func (self *Request) SetRuleName(ruleName string) *Request {
 	self.Rule = ruleName
-	return self
-}
-
-func (self *Request) IsReloadable() bool {
-	return self.Reloadable
-}
-
-func (self *Request) SetReloadable(can bool) *Request {
-	self.Reloadable = can
 	return self
 }
 
@@ -319,11 +299,6 @@ func (self *Request) SetPriority(priority int) *Request {
 
 func (self *Request) GetDownloaderID() int {
 	return self.DownloaderID
-}
-
-func (self *Request) SetDownloaderID(id int) *Request {
-	self.DownloaderID = id
-	return self
 }
 
 func (self *Request) MarshalJSON() ([]byte, error) {

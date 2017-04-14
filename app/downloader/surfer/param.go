@@ -50,12 +50,6 @@ func NewParam(req Request) (param *Param, err error) {
 		return nil, err
 	}
 
-	if req.GetProxy() != "" {
-		if param.proxy, err = url.Parse(req.GetProxy()); err != nil {
-			return nil, err
-		}
-	}
-
 	param.header = req.GetHeader()
 	if param.header == nil {
 		param.header = make(http.Header)

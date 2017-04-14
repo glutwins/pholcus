@@ -41,8 +41,6 @@ type (
 		GetTryTimes() int
 		// the pause time of retry
 		GetRetryPause() time.Duration
-		// the download ProxyHost
-		GetProxy() string
 		// max redirect times
 		GetRedirectTimes() int
 		// select Surf ro PhomtomJS

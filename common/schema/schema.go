@@ -14,8 +14,8 @@ type Task struct {
 	DockerCap      int                 // 分段转储容器容量
 	DockerQueueCap int                 // 分段输出池容量，不小于2
 	Inherit        bool                // 继承历史记录
+	UseProxy       bool                // 是否使用代理
 	Limit          int64               // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
-	ProxyMinute    int64               // 代理IP更换的间隔分钟数
 	// 选填项
 	Keyins string // 自定义输入，后期切分为多个任务的Keyin自定义配置
 

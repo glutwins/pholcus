@@ -1,49 +1,36 @@
 package slave
 
 import (
+	"context"
 	"encoding/json"
-	"time"
+	"fmt"
+	"math"
+	"sync"
 
-	"github.com/glutwins/flow"
 	"github.com/glutwins/pholcus/common/schema"
 	"github.com/glutwins/pholcus/logs"
-	"github.com/glutwins/pholcus/slave/scheduler"
 	"github.com/henrylee2cn/teleport"
 )
 
-type CrawlTask struct {
-	task   *schema.Task
-	result *schema.TaskResult
-	sdl    *scheduler.Scheduler
-}
-
-func (t *CrawlTask) Hash() int {
-	return 0
-}
-
-func (t *CrawlTask) Exec() (interface{}, error) {
-	sdl := scheduler.NewScheduler(t.task)
-	t.result = &schema.TaskResult{
-		StartTime: time.Now(),
-	}
-
-	go sdl.Run()
-
-	return nil, nil
-}
-
 type Slave struct {
+	base  int
+	max   int
 	trans teleport.Teleport
-	tasks *flow.TaskFlow
+	tasks map[int]*TaskProcess
+	sync.Mutex
+	recall sync.Cond
 }
 
 func NewSlave(master string, port string, cnum int) *Slave {
-	m := &Slave{}
-	m.trans = teleport.New()
+	m := &Slave{
+		max:   cnum,
+		tasks: make(map[int]*TaskProcess),
+		trans: teleport.New(),
+	}
+
 	m.trans.SetAPI(teleport.API{
 		"task": &slaveTaskHandle{},
 	}).Client(master, port)
-	m.tasks = flow.NewTaskFlow(cnum)
 
 	go func() {
 		for true {
@@ -62,6 +49,33 @@ func NewSlave(master string, port string, cnum int) *Slave {
 	return m
 }
 
+func (s *Slave) RunTask(t *schema.Task) {
+	s.Lock()
+	n := len(s.tasks) + 1
+	if n > math.MaxUint16 {
+		panic("slave task overload")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.base++
+	tp := &TaskProcess{id: s.base, cancel: cancel}
+	s.tasks[tp.id] = tp
+	s.Unlock()
+
+	go func() {
+		if n > len(s.tasks) {
+			s.recall.Wait()
+		}
+		result, err := tp.Run(ctx, t)
+		fmt.Println(result, err)
+		s.Lock()
+		delete(s.tasks, tp.id)
+		s.Unlock()
+		s.recall.Signal()
+	}()
+
+}
+
 // 从节点自动接收主节点任务的操作
 type slaveTaskHandle struct {
 	s *Slave
@@ -75,6 +89,6 @@ func (self *slaveTaskHandle) Process(receive *teleport.NetData) *teleport.NetDat
 		return nil
 	}
 
-	self.s.tasks.Exec(&CrawlTask{task: t})
+	self.s.RunTask(t)
 	return nil
 }

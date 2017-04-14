@@ -268,11 +268,6 @@ func (self *Context) GetTemp(key string, defaultValue interface{}) interface{} {
 	return self.Request.GetTemp(key, defaultValue)
 }
 
-// 获取请求中全部缓存数据
-func (self *Context) GetTemps() request.Temp {
-	return self.Request.GetTemps()
-}
-
 // 获得一个请求的缓存数据副本。
 func (self *Context) CopyTemps() request.Temp {
 	temps := make(request.Temp)

@@ -6,37 +6,22 @@ import (
 
 	"github.com/glutwins/pholcus/app/downloader/request"
 	"github.com/glutwins/pholcus/app/downloader/surfer"
-	"github.com/glutwins/pholcus/app/spider"
 	"github.com/glutwins/pholcus/config"
 )
 
-// The Downloader interface.
-// You can implement the interface by implement function Download.
-// Function Download need to return Page instance pointer that has request result downloaded from Request.
-type Downloader interface {
-	Download(*spider.Spider, *request.Request) (*spider.Context, error)
-}
+var surf = surfer.New()
+var phantom = surfer.NewPhantom(config.DefaultConfig.PhantomJs, config.PHANTOMJS_TEMP)
 
-type Surfer struct {
-	surf    surfer.Surfer
-	phantom surfer.Surfer
-}
-
-var SurferDownloader = &Surfer{
-	surf:    surfer.New(),
-	phantom: surfer.NewPhantom(config.DefaultConfig.PhantomJs, config.PHANTOMJS_TEMP),
-}
-
-func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) (*spider.Context, error) {
+func Download(cReq *request.Request) (*http.Response, error) {
 	var resp *http.Response
 	var err error
 
 	switch cReq.GetDownloaderID() {
 	case request.SURF_ID:
-		resp, err = self.surf.Download(cReq)
+		resp, err = surf.Download(cReq)
 
 	case request.PHANTOM_ID:
-		resp, err = self.phantom.Download(cReq)
+		resp, err = phantom.Download(cReq)
 	}
 
 	if err != nil {
@@ -47,8 +32,5 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) (*spider.
 		return nil, errors.New("响应状态 " + resp.Status)
 	}
 
-	ctx := spider.GetContext(sp, cReq)
-	ctx.Response = resp
-
-	return ctx, nil
+	return resp, nil
 }
